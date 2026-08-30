@@ -1,26 +1,114 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+@theme {
+  --color-bg: #120d0d;
+  --color-card: #1a1313;
+  --color-border: #2a2020;
+
+  --color-accent: #e24c3f;
+  --color-accent-foreground: #f0e8e6;
+
+  --color-secondary: #e2a63f;
+  --color-secondary-foreground: #120d0d;
+
+  --color-success: #7bae7f;
+  --color-success-foreground: #120d0d;
+
+  --color-text: #f0e8e6;
+  --color-text-muted: #9a8785;
+  --color-text-faint: #7a6663;
+
+  --radius-card: 14px;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background-color: #120d0d;
+  color: #f0e8e6;
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+  color-scheme: dark;
+}
+
+* {
+  border-color: #2a2020;
+}
+
+::selection {
+  background-color: #e24c3f;
+  color: #f0e8e6;
+}
+
+:focus-visible {
+  outline: 2px solid #e2a63f;
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #120d0d;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2020;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a2d2d;
+}
+
+.leaflet-container {
+  background: #16100f;
+  border-radius: 14px;
+}
+.leaflet-control-attribution {
+  background: rgba(18, 13, 13, 0.7) !important;
+  color: #7a6663 !important;
+}
+.leaflet-control-attribution a {
+  color: #9a8785 !important;
+}
+.leaflet-control-zoom a {
+  background-color: #1a1313 !important;
+  color: #f0e8e6 !important;
+  border-color: #2a2020 !important;
+}
+.leaflet-control-zoom a:hover {
+  background-color: #2a2020 !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #1a1313;
+  color: #f0e8e6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
