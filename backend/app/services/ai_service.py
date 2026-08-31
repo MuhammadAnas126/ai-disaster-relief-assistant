@@ -9,8 +9,8 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Initialize DashScope
-dashscope.api_key = settings.DASHSCOPE_API_KEY
+# Initialize DashScope only when a key is configured.
+dashscope.api_key = settings.DASHSCOPE_API_KEY or ""
 
 
 def _parse_json_block(raw_text: str) -> dict:
@@ -95,3 +95,6 @@ class AIService:
 
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+
+ai_service = AIService()
