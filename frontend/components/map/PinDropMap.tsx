@@ -37,7 +37,9 @@ interface PinDropMapProps {
 
 export default function PinDropMap({ lat, lng, onChange, heightClassName = 'h-[220px]' }: PinDropMapProps) {
   return (
-    <div className={`w-full ${heightClassName} overflow-hidden rounded-xl border border-border`}>
+    // `relative z-0` creates a stacking context so Leaflet's internal panes
+    // (z-index 200-1000) can't paint over floating UI like the chat widget.
+    <div className={`relative z-0 w-full ${heightClassName} overflow-hidden rounded-xl border border-border`}>
       <MapContainer center={[lat, lng]} zoom={13} style={{ height: '100%', width: '100%', background: '#16100f' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

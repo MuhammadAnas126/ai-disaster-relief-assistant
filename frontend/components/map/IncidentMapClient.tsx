@@ -9,6 +9,11 @@ const IncidentMap = dynamic(() => import('./IncidentMap'), {
   loading: () => <Skeleton className="h-[300px] w-full" />,
 })
 
-export function IncidentMapClient(props: { incidents: Incident[]; center?: [number, number]; heightClassName?: string }) {
+export function IncidentMapClient(props: {
+  incidents: Incident[]
+  center?: [number, number]
+  heightClassName?: string
+  focusIncidentId?: string | null
+}) {
   return <IncidentMap {...props} />
 }
