@@ -5,44 +5,91 @@ import { Card, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { Button } from '../../../components/ui/Button'
 import { Input, Label, Select, Textarea } from '../../../components/ui/Input'
 import { EmptyState } from '../../../components/ui/States'
-import { useSendChatMessage } from '../../../hooks/useAssistant'
+import { MarkdownText } from '../../../components/ui/Markdown'
+import { TypingIndicator } from '../../../components/ui/TypingIndicator'
+import { useSendAdminChatMessage } from '../../../hooks/useAssistant'
 import { useSendAlert } from '../../../hooks/useAlerts'
-import type { AlertLevel, ChatMessage } from '../../../types'
+import { useLanguage } from '../../../lib/i18n'
+import type { AlertLevel, AssistantContext, ChatMessage } from '../../../types'
 import { cn } from '../../../lib/utils'
+
+// One-click prompts, one per core assistant role: natural language case
+// querying, broadcast drafting, executive summaries, visual triage aggregation.
+const SUGGESTION_KEYS = [
+  'assistant.suggestTrapped',
+  'assistant.suggestBroadcast',
+  'assistant.suggestSummary',
+  'assistant.suggestVisual',
+] as const
+
+// Message ids/timestamps are generated at module scope (same pattern as
+// lib/api.ts) so event-handler code paths stay clean under the React purity lint.
+function buildUserMessage(text: string): ChatMessage {
+  return { id: `u-${Date.now()}`, role: 'user', text, sentAt: new Date().toISOString() }
+}
+
+function buildAssistantMessage(text: string): ChatMessage {
+  return { id: `a-${Date.now()}`, role: 'assistant', text, sentAt: new Date().toISOString() }
+}
 
 export default function AssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [lang, setLang] = useState<'EN' | 'UR'>('EN')
-  const sendMessage = useSendChatMessage()
+  const [draftLoaded, setDraftLoaded] = useState(false)
+  const sendMessage = useSendAdminChatMessage()
+  const { t } = useLanguage()
 
   const [alertLevel, setAlertLevel] = useState<AlertLevel>('warning')
   const [alertMessage, setAlertMessage] = useState('')
   const sendAlert = useSendAlert()
 
+  function submitMessage(text: string) {
+    const value = text.trim()
+    if (!value || sendMessage.isPending) return
+
+    const userMsg = buildUserMessage(value)
+    setMessages((m) => [...m, userMsg])
+    // The EN/UR toggle sets the preferred reply language for the assistant;
+    // it defaults to the active UI language.
+    const chatContext: AssistantContext = { language: lang === 'UR' ? 'ur' : 'en' }
+    sendMessage.mutate(
+      { message: value, history: [...messages, userMsg], context: chatContext },
+      {
+        onSuccess: (res) => {
+          setMessages((m) => [...m, buildAssistantMessage(res.reply)])
+          // A requested broadcast draft loads straight into the alert form
+          // for review — it is never sent automatically.
+          if (res.broadcast?.message) {
+            setAlertLevel(res.broadcast.level)
+            setAlertMessage(res.broadcast.message)
+            setDraftLoaded(true)
+          }
+        },
+      },
+    )
+  }
+
   function handleSend(e: FormEvent) {
     e.preventDefault()
-    if (!draft.trim()) return
-    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', text: draft, sentAt: new Date().toISOString() }
-    setMessages((m) => [...m, userMsg])
-    const text = draft
+    submitMessage(draft)
     setDraft('')
-    sendMessage.mutate(text, {
-      onSuccess: (reply) => setMessages((m) => [...m, reply]),
-    })
   }
 
   function handleBroadcast(e: FormEvent) {
     e.preventDefault()
     if (!alertMessage.trim()) return
-    sendAlert.mutate({ level: alertLevel, message: alertMessage }, { onSuccess: () => setAlertMessage('') })
+    sendAlert.mutate(
+      { level: alertLevel, message: alertMessage },
+      { onSuccess: () => { setAlertMessage(''); setDraftLoaded(false) } },
+    )
   }
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <Card className="flex h-[480px] flex-col">
         <CardHeader>
-          <CardTitle>Help chat</CardTitle>
+          <CardTitle>{t('assistant.title')}</CardTitle>
           <button
             onClick={() => setLang((l) => (l === 'EN' ? 'UR' : 'EN'))}
             className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-text-muted hover:text-text"
@@ -53,60 +100,77 @@ export default function AssistantPage() {
 
         <div className="flex-1 space-y-2 overflow-y-auto pr-1">
           {messages.length === 0 ? (
-            <EmptyState message="No messages yet" hint="Ask about supplies, routes, or shelter status." />
+            <div className="space-y-3">
+              <EmptyState message={t('assistant.noMessages')} hint={t('assistant.noMessagesHint')} />
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTION_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => submitMessage(t(key))}
+                    className="rounded-full border border-border bg-bg px-3 py-1.5 text-xs text-text-muted transition-colors hover:border-secondary hover:text-text"
+                  >
+                    {t(key)}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : (
             messages.map((msg) => (
               <div
                 key={msg.id}
                 className={cn(
-                  'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm',
+                  'max-w-[85%] whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
                   msg.role === 'user' ? 'ml-auto border border-border bg-bg text-text' : 'bg-accent text-accent-foreground',
                 )}
               >
-                {msg.text}
+                {msg.role === 'assistant' ? <MarkdownText text={msg.text} /> : msg.text}
               </div>
             ))
           )}
-          {sendMessage.isPending && (
-            <div className="max-w-[85%] rounded-2xl bg-accent/60 px-3.5 py-2.5 text-sm text-accent-foreground">…</div>
-          )}
+          {sendMessage.isPending && <TypingIndicator className="rounded-2xl" />}
         </div>
 
         <form onSubmit={handleSend} className="mt-3 flex gap-2">
-          <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type a message…" className="flex-1" />
+          <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t('common.typeMessage')} className="flex-1" />
           <Button type="submit" disabled={sendMessage.isPending}>
-            Send
+            {t('common.send')}
           </Button>
         </form>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Broadcast alert</CardTitle>
+          <CardTitle>{t('assistant.broadcast')}</CardTitle>
         </CardHeader>
         <form onSubmit={handleBroadcast} className="space-y-4">
           <div>
-            <Label htmlFor="level">Level</Label>
+            <Label htmlFor="level">{t('assistant.level')}</Label>
             <Select id="level" value={alertLevel} onChange={(e) => setAlertLevel(e.target.value as AlertLevel)}>
-              <option value="info">Info</option>
-              <option value="warning">Warning</option>
-              <option value="critical">Critical</option>
+              <option value="info">{t('assistant.levelInfo')}</option>
+              <option value="warning">{t('assistant.levelWarning')}</option>
+              <option value="critical">{t('assistant.levelCritical')}</option>
             </Select>
           </div>
           <div>
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message">{t('assistant.message')}</Label>
             <Textarea
               id="message"
               rows={4}
               value={alertMessage}
-              onChange={(e) => setAlertMessage(e.target.value)}
-              placeholder="Write an alert…"
+              onChange={(e) => {
+                setAlertMessage(e.target.value)
+                setDraftLoaded(false)
+              }}
+              placeholder={t('assistant.messagePlaceholder')}
             />
           </div>
           <Button type="submit" className="w-full" disabled={sendAlert.isPending}>
-            {sendAlert.isPending ? 'Sending…' : 'Send broadcast'}
+            {sendAlert.isPending ? t('common.sending') : t('assistant.sendBroadcast')}
           </Button>
-          {sendAlert.isSuccess && <p className="text-center text-xs text-success">Broadcast sent.</p>}
+          {sendAlert.isSuccess && <p className="text-center text-xs text-success">{t('assistant.broadcastSent')}</p>}
+          {draftLoaded && !sendAlert.isSuccess && (
+            <p className="text-center text-xs text-secondary">{t('assistant.draftLoaded')}</p>
+          )}
         </form>
       </Card>
     </div>
