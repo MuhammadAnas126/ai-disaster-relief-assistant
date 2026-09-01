@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from app.services import triage_store
 from app.services.ai_service import ai_service
 import base64
 
@@ -21,6 +22,11 @@ async def analyze_victim_frame(file: UploadFile = File(...)):
 
         # Send to AI Service for analysis
         ai_result = await ai_service.analyze_victim_image(image_base64)
+
+        # Archive successful findings so the Admin AI Assistant can
+        # aggregate visual triage across all victim submissions.
+        if ai_result.get("success") and isinstance(ai_result.get("data"), dict):
+            triage_store.record_finding(ai_result["data"])
 
         # Return the result
         return {
