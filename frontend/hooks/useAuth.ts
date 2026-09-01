@@ -9,7 +9,3 @@ export function useLogin() {
     onSuccess: (data) => setToken(data.token),
   })
 }
-
-export function useRegisterOrganization() {
-  return useMutation({ mutationFn: authApi.registerOrganization })
-}

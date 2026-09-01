@@ -39,6 +39,8 @@ export interface Incident {
   reportedAt: string
   reportedBy?: string
   isGuestReport: boolean
+  /** Evidence (photos/videos/live-share frames) attached to this case */
+  evidenceIds?: string[]
 }
 
 export interface IncidentAnalysis {
@@ -47,22 +49,6 @@ export interface IncidentAnalysis {
   structuralDamage: DamageLevel
   severityScore: number
   reasoning: string
-}
-
-export type SupplyStatus = 'available' | 'low_stock' | 'out_of_stock'
-
-export interface InventoryItem {
-  id: string
-  item: string
-  quantity: number
-  location: string
-  status: SupplyStatus
-}
-
-export interface InventoryStats {
-  totalUnits: number
-  matched: number
-  unmetNeeds: number
 }
 
 export type CheckInStatus = 'normal' | 'flagged'
@@ -86,6 +72,17 @@ export interface Alert {
   sentBy?: string
 }
 
+/** AI-drafted broadcast returned by the Admin AI Assistant for review in the alert form */
+export interface BroadcastDraft {
+  level: AlertLevel
+  message: string
+}
+
+export interface AdminAssistantReply {
+  reply: string
+  broadcast: BroadcastDraft | null
+}
+
 export interface PendingUser {
   id: string
   fullName: string
@@ -100,4 +97,58 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
   sentAt: string
+}
+
+export interface AssistantContext {
+  /** Reported situation / disaster description from "Register Your Case" */
+  situation?: string
+  /** Reported location (coordinates or label) */
+  location?: string
+  /** Whether anyone is reported trapped */
+  trapped?: TrappedStatus
+  /** Number of people affected */
+  peopleAffected?: number
+  /** Whether the case has been submitted to responders */
+  submitted?: boolean
+  /** Preferred reply language for the chat */
+  language?: 'en' | 'ur'
+}
+
+export interface LiveAnalysis {
+  status: 'standing' | 'sitting' | 'collapsed'
+  confidence: number
+  hazards: string[]
+  timestamp: string
+  /** Disaster type classified by Qwen-VL (e.g. flood, earthquake) */
+  disasterType?: string
+  /** Evidence gallery id, present when the frame was archived server-side */
+  evidenceId?: string
+}
+
+export interface EvidenceAnalysis {
+  status: string
+  disasterType: string
+  confidence: number
+  hazards: string[]
+}
+
+export interface EvidenceLocation {
+  lat?: number
+  lng?: number
+  label?: string
+}
+
+/** One victim-submitted photo/video/live-stream frame, stored and analyzed by the backend */
+export interface EvidenceRecord {
+  id: string
+  mediaType: 'image' | 'video'
+  mediaUrl: string
+  thumbnailUrl: string | null
+  source: 'upload' | 'stream'
+  caseId?: string | null
+  location?: EvidenceLocation | null
+  trapped?: string | null
+  peopleAffected?: number | null
+  analysis: EvidenceAnalysis | null
+  receivedAt: string
 }
