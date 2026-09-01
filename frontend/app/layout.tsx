@@ -13,8 +13,8 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-full bg-bg font-sans text-text antialiased">
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body className="min-h-full bg-bg font-sans text-text antialiased" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

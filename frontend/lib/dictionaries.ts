@@ -1,0 +1,494 @@
+/**
+ * Bilingual UI dictionaries (English / Urdu).
+ *
+ * Keys are flat, dot-namespaced strings grouped by feature area. The English
+ * dictionary defines the source of truth for the key set — the Urdu dictionary
+ * is typed as `Record<keyof typeof en, string>` so TypeScript fails the build
+ * whenever a key is added to one dictionary but not the other.
+ */
+
+export type Language = 'en' | 'ur'
+
+const en = {
+  // ----- Common / shared -----
+  'common.appTitle': 'AI Disaster Relief',
+  'common.back': 'Back',
+  'common.sending': 'Sending…',
+  'common.severityCritical': 'Critical',
+  'common.severityHigh': 'High',
+  'common.severityMedium': 'Medium',
+  'common.status': 'Status',
+  'common.location': 'Location',
+  'common.name': 'Name',
+  'common.noIncidentsYet': 'No incidents reported yet',
+  'common.typeMessage': 'Type a message…',
+  'common.send': 'Send',
+  'common.disaster': 'Disaster',
+
+  // ----- Disaster types (Qwen-VL classification) -----
+  'disaster.flood': 'Flood',
+  'disaster.earthquake': 'Earthquake',
+  'disaster.fire': 'Fire',
+  'disaster.building_collapse': 'Building collapse',
+  'disaster.landslide': 'Landslide',
+  'disaster.storm': 'Storm',
+  'disaster.other': 'Other',
+  'disaster.unknown': 'Unclassified',
+
+  // ----- Landing -----
+  'landing.heading': 'How would you like to continue?',
+  'landing.subheading': 'Immediate assistance is available 24/7',
+  'landing.registerCase': 'Register your case',
+  'landing.registerCaseDesc': 'I need help — report my situation now',
+  'landing.emergency': 'Emergency',
+  'landing.signIn': 'Sign in',
+  'landing.signInDesc': 'Already have an account',
+  'landing.noAccountNeeded': 'Registering a case never requires an account or password',
+
+  // ----- Sign in -----
+  'signIn.title': 'Sign in',
+  'signIn.subtitle': 'Access your dispatch or organization dashboard',
+  'signIn.email': 'Email',
+  'signIn.password': 'Password',
+  'signIn.pendingApproval': 'Your account is awaiting approval.',
+  'signIn.error': "Couldn't sign in. Check your email and password and try again.",
+  'signIn.submitting': 'Signing in…',
+
+  // ----- Register case -----
+  'registerCase.title': 'Register your case',
+  'registerCase.subtitle': 'No account or password needed',
+  'registerCase.receivedTitle': 'Report received',
+  'registerCase.receivedMessage':
+    'Your situation has been logged and prioritized for response. A dispatch team has been notified — no further action is needed from you right now.',
+  'registerCase.description': "What's happening?",
+  'registerCase.descriptionPlaceholder': 'Describe your situation — what happened, where, and who needs help',
+  'registerCase.peopleAffected': 'People affected',
+  'registerCase.peopleAffectedPlaceholder': 'e.g. 4',
+  'registerCase.trapped': 'Anyone trapped?',
+  'registerCase.trappedNo': 'No',
+  'registerCase.trappedPartial': 'Partially',
+  'registerCase.trappedYes': 'Yes',
+  'registerCase.trappedDetails': 'Details',
+  'registerCase.trappedDetailsPlaceholder': 'Who is trapped, where exactly, and since when?',
+  'registerCase.sendSos': 'Send SOS',
+  'registerCase.guestTitle': 'Guest-reported incident',
+  'registerCase.trappedDetailsPrefix': 'Trapped details',
+  'registerCase.reportedLocation': 'Reported location',
+  'registerCase.location': 'Location',
+  'registerCase.locating': 'Locating…',
+  'registerCase.shareLocation': 'Share My Location',
+  'registerCase.locationCaptured': 'Location captured — the pin now marks your GPS position.',
+  'registerCase.locationError':
+    "Couldn't access your location. Check browser permissions, or tap the map to drop the pin manually.",
+  'registerCase.tapMapHint': "Tap the map to drop or move the pin if it isn't exact.",
+  'registerCase.liveShare': 'Live Share',
+  'registerCase.stop': 'Stop',
+  'registerCase.startCamera': 'Start camera',
+  'registerCase.analyzing': 'Analyzing…',
+  'registerCase.snapPhoto': 'Snap photo for AI analysis',
+  'registerCase.aiPrefix': 'AI',
+  'registerCase.confidence': 'confidence',
+  'registerCase.hazards': 'Hazards',
+  'registerCase.analysisStanding': 'Standing',
+  'registerCase.analysisSitting': 'Sitting',
+  'registerCase.analysisCollapsed': 'Collapsed',
+  'registerCase.cameraPreview': 'Camera preview will appear here',
+  'registerCase.cameraPreviewHint':
+    'Start the camera to snap or stream live photos of your situation for AI analysis. Optional, but helps responders prioritize.',
+  'registerCase.evidence': 'Evidence submission',
+  'registerCase.evidenceHint':
+    'Send photos or videos of your situation, or go live on camera — each submission is analyzed by AI and shown to responders.',
+  'registerCase.tabUpload': 'Upload',
+  'registerCase.tabStream': 'Live',
+  'registerCase.uploadButton': 'Tap to choose photos or videos',
+  'registerCase.uploadHint': 'Analyzed by AI as soon as you pick them',
+  'registerCase.uploading': 'Uploading & analyzing…',
+  'registerCase.evidenceReceived': 'received by responders',
+  'registerCase.evidenceStored': 'Stored — AI analysis unavailable',
+  'registerCase.evidenceFailed': 'Upload failed — try again',
+  'registerCase.fileTooLarge': 'File too large (max 50 MB)',
+  'registerCase.submissions': 'Your submissions',
+  'registerCase.streamNote':
+    'Frames you stream are saved to the responders\' evidence gallery.',
+  'registerCase.streamSaved': 'Live frames saved to the evidence gallery',
+  'liveShare.connectionError': "Couldn't connect to the live analysis server.",
+  'liveShare.cameraError': "Couldn't access your camera. Check your browser permissions and try again.",
+
+  // ----- Top bar -----
+  'topBar.sections': 'Dashboard sections',
+  'topBar.overview': 'Overview',
+  'topBar.checkIn': 'Check-in',
+  'topBar.connect': 'Live Share',
+  'topBar.responseList': 'Response list',
+  'topBar.assistant': 'Assistant',
+  'topBar.account': 'Account',
+  'topBar.notSignedIn': 'Not signed in',
+  'topBar.signOut': 'Sign out',
+
+  // ----- Overview -----
+  'overview.peopleReached': 'People reached today',
+  'overview.openIncidents': 'Open incidents',
+  'overview.liveMap': 'Live incident map',
+  'overview.activeMarkers': 'active markers',
+  'overview.clear': 'Clear',
+  'overview.priorityQueue': 'Priority queue',
+  'overview.affected': 'affected',
+  'overview.noIncidentsHint': 'New reports will appear here in real time.',
+
+  // ----- Check-in -----
+  'checkIn.privacyNote':
+    'This only tracks motion, battery level, and check-in signal. Camera, microphone, and messages are never accessed passively.',
+  'checkIn.wellness': 'Wellness status',
+  'checkIn.lastMotion': 'Last motion',
+  'checkIn.lastCheckIn': 'Last check-in',
+  'checkIn.battery': 'Battery',
+  'checkIn.flagged': 'Flagged',
+  'checkIn.normal': 'Normal',
+  'checkIn.empty': 'No check-ins yet',
+  'checkIn.emptyHint': 'Field devices reporting in will appear here.',
+
+  // ----- Connect -----
+  'connect.preview': 'Preview',
+  'connect.shareWith': 'Share with',
+  'connect.dispatchTeam': 'Dispatch team',
+  'connect.medicalHub': 'Medical hub',
+  'connect.fieldCoordinator': 'Field coordinator',
+  'connect.cameraError': "Couldn't access your camera or microphone. Check your browser permissions and try again.",
+  'connect.stopSharing': 'Stop sharing',
+  'connect.startSharing': 'Start sharing',
+  'connect.privacy': 'You control when sharing starts and stops. It never turns on by itself.',
+  'connect.evidenceTitle': 'Incoming evidence submissions',
+  'connect.evidenceHint':
+    'Photos, videos, and live-stream frames submitted by victims — updated in real time.',
+  'connect.evidenceEmpty': 'No evidence yet',
+  'connect.evidenceEmptyHint':
+    'Victim photo, video, and live-stream submissions will appear here in real time.',
+  'connect.sourceUpload': 'Upload',
+  'connect.sourceStream': 'Live frame',
+  'connect.trappedFlag': 'Trapped',
+  'connect.statTotal': 'submissions',
+  'connect.statUploads': 'uploads',
+  'connect.statStreams': 'live frames',
+  'connect.statTrapped': 'trapped flagged',
+  'connect.linkedCase': 'Case',
+  'connect.noAnalysis': 'AI analysis unavailable',
+  'connect.openMedia': 'Open full media',
+
+  // ----- Response list -----
+  'responseList.incidentDetails': 'Incident details',
+  'responseList.allIncidents': 'All incidents, ranked by urgency',
+  'responseList.clearFilter': 'Clear filter',
+  'responseList.incident': 'Incident',
+  'responseList.affected': 'Affected',
+  'responseList.trapped': 'Trapped',
+  'responseList.damage': 'Damage',
+  'responseList.score': 'Score',
+  'responseList.getLocation': 'Get location',
+  'responseList.trappedYes': 'Yes',
+  'responseList.trappedPartial': 'Partial',
+  'responseList.trappedNo': 'No',
+  'responseList.damageSevere': 'Severe',
+  'responseList.damageModerate': 'Moderate',
+  'responseList.damageMinor': 'Minor',
+  'responseList.notFound': 'Incident not found',
+  'responseList.notFoundHint': 'It may have been resolved or removed.',
+  'responseList.emptyHint': 'New reports from the field will be ranked here automatically.',
+
+  // ----- Assistant -----
+  'assistant.title': 'Muhafiz AI Assistant',
+  'assistant.noMessages': 'No messages yet',
+  'assistant.noMessagesHint': 'Ask about active cases, trapped victims, or SOS volumes — or request a broadcast draft.',
+  'assistant.suggestTrapped': 'Show me all cases where people are trapped based on recent photos',
+  'assistant.suggestBroadcast': 'Draft an urgent evacuation alert for flood-prone zones',
+  'assistant.suggestSummary': 'Give me a 3-bullet executive summary of top emergency clusters',
+  'assistant.suggestVisual': 'What disaster types are most common in uploaded images?',
+  'assistant.draftLoaded': 'AI draft loaded below — review and send.',
+  'assistant.broadcast': 'Broadcast alert',
+  'assistant.level': 'Level',
+  'assistant.levelInfo': 'Info',
+  'assistant.levelWarning': 'Warning',
+  'assistant.levelCritical': 'Critical',
+  'assistant.message': 'Message',
+  'assistant.messagePlaceholder': 'Write an alert…',
+  'assistant.sendBroadcast': 'Send broadcast',
+  'assistant.broadcastSent': 'Broadcast sent.',
+
+  // ----- Admin -----
+  'admin.title': 'Pending organization accounts',
+  'admin.organization': 'Organization',
+  'admin.role': 'Role',
+  'admin.requested': 'Requested',
+  'admin.approve': 'Approve',
+  'admin.empty': 'No pending accounts',
+  'admin.emptyHint': 'New organization sign-ups awaiting review will appear here.',
+
+  // ----- Chat widget -----
+  'chat.title': 'Muhafiz',
+  'chat.subtitle': 'Survival & emergency guidance',
+  'chat.open': 'Open chat',
+  'chat.close': 'Close chat',
+  'chat.empty': 'Ask for survival help — shelter, first aid, evacuation routes, or supplies.',
+
+  // ----- States -----
+  'states.error': 'Something went wrong loading this data.',
+  'states.errorHint': 'Check your connection and try again.',
+
+  // ----- Map -----
+  'map.trappedYes': 'Yes — people trapped',
+  'map.trappedPartial': 'Partially',
+  'map.trappedNo': 'No',
+  'map.trappedLabel': 'Trapped',
+  'map.score': 'score',
+  'map.affected': 'affected',
+  'map.viewDetails': 'View details →',
+
+  // ----- Relative time -----
+  'time.justNow': 'just now',
+  'time.minutesAgo': '{n}m ago',
+  'time.hoursAgo': '{n}h ago',
+  'time.daysAgo': '{n}d ago',
+}
+
+const ur: Record<keyof typeof en, string> = {
+  // ----- Common / shared -----
+  'common.appTitle': 'اے آئی ڈیزاسٹر ریلیف',
+  'common.back': 'واپس',
+  'common.sending': 'بھیجا جا رہا ہے…',
+  'common.severityCritical': 'انتہائی',
+  'common.severityHigh': 'زیادہ',
+  'common.severityMedium': 'درمیانہ',
+  'common.status': 'حالت',
+  'common.location': 'مقام',
+  'common.name': 'نام',
+  'common.noIncidentsYet': 'ابھی تک کوئی واقعہ رپورٹ نہیں ہوا',
+  'common.typeMessage': 'پیغام لکھیں…',
+  'common.send': 'بھیجیں',
+  'common.disaster': 'آفت',
+
+  // ----- Disaster types (Qwen-VL classification) -----
+  'disaster.flood': 'سیلاب',
+  'disaster.earthquake': 'زلزلہ',
+  'disaster.fire': 'آگ',
+  'disaster.building_collapse': 'عمارت کا انہدام',
+  'disaster.landslide': 'مٹی کا تودہ',
+  'disaster.storm': 'طوفان',
+  'disaster.other': 'دیگر',
+  'disaster.unknown': 'غیر درجہ بند',
+
+  // ----- Landing -----
+  'landing.heading': 'آپ کیسے آگے بڑھنا چاہتے ہیں؟',
+  'landing.subheading': 'فوری مدد 24 گھنٹے دستیاب ہے',
+  'landing.registerCase': 'اپنا کیس رجسٹر کریں',
+  'landing.registerCaseDesc': 'مجھے مدد چاہیے — ابھی اپنی صورتحال رپورٹ کریں',
+  'landing.emergency': 'ایمرجنسی',
+  'landing.signIn': 'سائن ان کریں',
+  'landing.signInDesc': 'پہلے سے اکاؤنٹ ہے؟',
+  'landing.noAccountNeeded': 'کیس رجسٹر کرنے کے لیے اکاؤنٹ یا پاس ورڈ کی ضرورت نہیں',
+
+  // ----- Sign in -----
+  'signIn.title': 'سائن ان کریں',
+  'signIn.subtitle': 'اپنے ڈسپیچ یا تنظیمی ڈیش بورڈ تک رسائی حاصل کریں',
+  'signIn.email': 'ای میل',
+  'signIn.password': 'پاس ورڈ',
+  'signIn.pendingApproval': 'آپ کا اکاؤنٹ منظوری کے انتظار میں ہے۔',
+  'signIn.error': 'سائن ان نہیں ہو سکا۔ اپنا ای میل اور پاس ورڈ چیک کر کے دوبارہ کوشش کریں۔',
+  'signIn.submitting': 'سائن ان ہو رہا ہے…',
+
+  // ----- Register case -----
+  'registerCase.title': 'اپنا کیس رجسٹر کریں',
+  'registerCase.subtitle': 'اکاؤنٹ یا پاس ورڈ کی ضرورت نہیں',
+  'registerCase.receivedTitle': 'رپورٹ موصول ہو گئی',
+  'registerCase.receivedMessage':
+    'آپ کی صورتحال درج کر کے جوابی کارروائی کے لیے ترجیح دے دی گئی ہے۔ ڈسپیچ ٹیم کو اطلاع دے دی گئی ہے — ابھی آپ کو کچھ اور کرنے کی ضرورت نہیں ہے۔',
+  'registerCase.description': 'کیا ہو رہا ہے؟',
+  'registerCase.descriptionPlaceholder': 'اپنی صورتحال بیان کریں — کیا ہوا، کہاں ہوا، اور کسے مدد چاہیے',
+  'registerCase.peopleAffected': 'متاثرہ افراد',
+  'registerCase.peopleAffectedPlaceholder': 'مثلاً 4',
+  'registerCase.trapped': 'کیا کوئی پھنسا ہوا ہے؟',
+  'registerCase.trappedNo': 'نہیں',
+  'registerCase.trappedPartial': 'جزوی طور پر',
+  'registerCase.trappedYes': 'ہاں',
+  'registerCase.trappedDetails': 'تفصیلات',
+  'registerCase.trappedDetailsPlaceholder': 'کون پھنسا ہوا ہے، کہاں بالکل، اور کب سے؟',
+  'registerCase.sendSos': 'SOS بھیجیں',
+  'registerCase.guestTitle': 'گمنام رپورٹ کردہ واقعہ',
+  'registerCase.trappedDetailsPrefix': 'پھنسنے کی تفصیلات',
+  'registerCase.reportedLocation': 'رپورٹ شدہ مقام',
+  'registerCase.location': 'مقام',
+  'registerCase.locating': 'مقام معلوم ہو رہا ہے…',
+  'registerCase.shareLocation': 'میرا مقام شیئر کریں',
+  'registerCase.locationCaptured': 'مقام حاصل ہو گیا — پن اب آپ کی جی پی ایس پوزیشن ظاہر کر رہا ہے۔',
+  'registerCase.locationError':
+    'آپ کے مقام تک رسائی نہیں ہو سکی۔ براؤزر کی اجازتیں چیک کریں، یا نقشے پر ٹیپ کر کے پن خود رکھیں۔',
+  'registerCase.tapMapHint': 'اگر پن درست نہ ہو تو نقشے پر ٹیپ کر کے پن رکھیں یا ہٹائیں۔',
+  'registerCase.liveShare': 'لائیو شیئر',
+  'registerCase.stop': 'بند کریں',
+  'registerCase.startCamera': 'کیمرہ آن کریں',
+  'registerCase.analyzing': 'تجزیہ ہو رہا ہے…',
+  'registerCase.snapPhoto': 'اے آئی تجزیے کے لیے تصویر کھینچیں',
+  'registerCase.aiPrefix': 'اے آئی',
+  'registerCase.confidence': 'اعتماد',
+  'registerCase.hazards': 'خطرات',
+  'registerCase.analysisStanding': 'کھڑا ہوا',
+  'registerCase.analysisSitting': 'بیٹھا ہوا',
+  'registerCase.analysisCollapsed': 'گرا ہوا',
+  'registerCase.cameraPreview': 'کیمرے کا پیش منظر یہاں نظر آئے گا',
+  'registerCase.cameraPreviewHint':
+    'اے آئی تجزیے کے لیے اپنی صورتحال کی لائیو تصاویر بھیجنے کے لیے کیمرہ آن کریں۔ یہ اختیاری ہے، مگر اس سے مدد کرنے والوں کے لیے ترجیح طے کرنا آسان ہو جاتا ہے۔',
+  'registerCase.evidence': 'ثبوت جمع کروائیں',
+  'registerCase.evidenceHint':
+    'اپنی صورتحال کی تصاویر یا ویڈیوز بھیجیں، یا کیمرے سے لائیو نشر کریں — ہر جمع کروائی گئی چیز کا اے آئی تجزیہ ہو کر مددکار ٹیم کو دکھائی جاتی ہے۔',
+  'registerCase.tabUpload': 'اپلوڈ',
+  'registerCase.tabStream': 'لائیو',
+  'registerCase.uploadButton': 'تصاویر یا ویڈیوز منتخب کرنے کے لیے ٹیپ کریں',
+  'registerCase.uploadHint': 'منتخب کرتے ہی اے آئی تجزیہ شروع ہو جاتا ہے',
+  'registerCase.uploading': 'اپلوڈ اور تجزیہ جاری ہے…',
+  'registerCase.evidenceReceived': 'مددکار ٹیم کو موصول ہو گیا',
+  'registerCase.evidenceStored': 'محفوظ ہو گیا — اے آئی تجزیہ دستیاب نہیں',
+  'registerCase.evidenceFailed': 'اپلوڈ ناکام — دوبارہ کوشش کریں',
+  'registerCase.fileTooLarge': 'فائل بہت بڑی ہے (زیادہ سے زیادہ 50 ایم بی)',
+  'registerCase.submissions': 'آپ کی جمع کرائی گئی چیزیں',
+  'registerCase.streamNote':
+    'آپ کے لائیو فریم مددکار ٹیم کی ثبوت گیلری میں محفوظ ہوتے ہیں۔',
+  'registerCase.streamSaved': 'لائیو فریم ثبوت گیلری میں محفوظ ہو گئے',
+  'liveShare.connectionError': 'لائیو تجزیہ سرور سے رابطہ نہیں ہو سکا۔',
+  'liveShare.cameraError': 'کیمرے تک رسائی نہیں ہو سکی۔ اپنے براؤزر کی اجازتیں چیک کر کے دوبارہ کوشش کریں۔',
+
+  // ----- Top bar -----
+  'topBar.sections': 'ڈیش بورڈ سیکشنز',
+  'topBar.overview': 'جائزہ',
+  'topBar.checkIn': 'چیک اِن',
+  'topBar.connect': 'لائیو شیئر',
+  'topBar.responseList': 'جوابی فہرست',
+  'topBar.assistant': 'معاون',
+  'topBar.account': 'اکاؤنٹ',
+  'topBar.notSignedIn': 'سائن ان نہیں ہے',
+  'topBar.signOut': 'سائن آؤٹ',
+
+  // ----- Overview -----
+  'overview.peopleReached': 'آج مدد حاصل کرنے والے',
+  'overview.openIncidents': 'کھلے واقعات',
+  'overview.liveMap': 'واقعات کا لائیو نقشہ',
+  'overview.activeMarkers': 'فعال نشانات',
+  'overview.clear': 'صاف کریں',
+  'overview.priorityQueue': 'ترجیحی فہرست',
+  'overview.affected': 'متاثرہ',
+  'overview.noIncidentsHint': 'نئی رپورٹس یہاں براہِ راست نظر آئیں گی۔',
+
+  // ----- Check-in -----
+  'checkIn.privacyNote':
+    'یہ صرف حرکت، بیٹری کی سطح اور چیک اِن سگنل ٹریک کرتا ہے۔ کیمرہ، مائیکروفون اور پیغامات کبھی خفیہ طور پر استعمال نہیں ہوتے۔',
+  'checkIn.wellness': 'فلاح و بہبود کی حالت',
+  'checkIn.lastMotion': 'آخری حرکت',
+  'checkIn.lastCheckIn': 'آخری چیک اِن',
+  'checkIn.battery': 'بیٹری',
+  'checkIn.flagged': 'توجہ درکار',
+  'checkIn.normal': 'نارمل',
+  'checkIn.empty': 'ابھی تک کوئی چیک اِن نہیں ہوا',
+  'checkIn.emptyHint': 'فیلڈ سے رپورٹ کرنے والی ڈیوائسیں یہاں نظر آئیں گی۔',
+
+  // ----- Connect -----
+  'connect.preview': 'پیش منظر',
+  'connect.shareWith': 'شیئر کریں',
+  'connect.dispatchTeam': 'ڈسپیچ ٹیم',
+  'connect.medicalHub': 'طبی مرکز',
+  'connect.fieldCoordinator': 'فیلڈ کوآرڈینیٹر',
+  'connect.cameraError': 'کیمرے یا مائیکروفون تک رسائی نہیں ہو سکی۔ اپنے براؤزر کی اجازتیں چیک کر کے دوبارہ کوشش کریں۔',
+  'connect.stopSharing': 'شیئرنگ بند کریں',
+  'connect.startSharing': 'شیئرنگ شروع کریں',
+  'connect.privacy': 'شیئرنگ کب شروع ہو اور کب بند، یہ آپ طے کرتے ہیں۔ یہ کبھی خود بخود شروع نہیں ہوتی۔',
+  'connect.evidenceTitle': 'موصول ہونے والے ثبوت',
+  'connect.evidenceHint':
+    'متاثرین کی بھیجی گئی تصاویر، ویڈیوز اور لائیو فریم — براہِ راست اپ ڈیٹ ہوتے ہیں۔',
+  'connect.evidenceEmpty': 'ابھی کوئی ثبوت نہیں',
+  'connect.evidenceEmptyHint':
+    'متاثرین کی تصاویر، ویڈیوز اور لائیو فریم یہاں براہِ راست نظر آئیں گے۔',
+  'connect.sourceUpload': 'اپلوڈ',
+  'connect.sourceStream': 'لائیو فریم',
+  'connect.trappedFlag': 'پھنسے ہوئے',
+  'connect.statTotal': 'ثبوت',
+  'connect.statUploads': 'اپلوڈز',
+  'connect.statStreams': 'لائیو فریم',
+  'connect.statTrapped': 'پھنسنے کی نشاندہی',
+  'connect.linkedCase': 'کیس',
+  'connect.noAnalysis': 'اے آئی تجزیہ دستیاب نہیں',
+  'connect.openMedia': 'پوری میڈیا کھولیں',
+
+  // ----- Response list -----
+  'responseList.incidentDetails': 'واقعے کی تفصیلات',
+  'responseList.allIncidents': 'تمام واقعات، فورییت کے مطابق',
+  'responseList.clearFilter': 'فلٹر ہٹائیں',
+  'responseList.incident': 'واقعہ',
+  'responseList.affected': 'متاثرین',
+  'responseList.trapped': 'پھنسے ہوئے',
+  'responseList.damage': 'تباہی',
+  'responseList.score': 'اسکور',
+  'responseList.getLocation': 'مقام دیکھیں',
+  'responseList.trappedYes': 'ہاں',
+  'responseList.trappedPartial': 'جزوی',
+  'responseList.trappedNo': 'نہیں',
+  'responseList.damageSevere': 'شدید',
+  'responseList.damageModerate': 'درمیانہ',
+  'responseList.damageMinor': 'ہلکی',
+  'responseList.notFound': 'واقعہ نہیں ملا',
+  'responseList.notFoundHint': 'ممکن ہے یہ حل ہو گیا ہو یا ہٹا دیا گیا ہو۔',
+  'responseList.emptyHint': 'فیلڈ کی نئی رپورٹس خودکار طور پر یہاں ترتیب دی جائیں گی۔',
+
+  // ----- Assistant -----
+  'assistant.title': 'محافظ اے آئی اسسٹنٹ',
+  'assistant.noMessages': 'ابھی کوئی پیغام نہیں',
+  'assistant.noMessagesHint': 'فعال کیسز، پھنسے ہوئے افراد یا SOS رپورٹس کے بارے میں پوچھیں — یا نشری الرٹ کا مسودہ تیار کروائیں۔',
+  'assistant.suggestTrapped': 'حالیہ تصاویر کی بنیاد پر تمام وہ کیسز دکھائیں جن میں لوگ پھنسے ہوئے ہیں',
+  'assistant.suggestBroadcast': 'سیلابی علاقوں کے لیے فوری انخلاء الرٹ کا مسودہ لکھیں',
+  'assistant.suggestSummary': 'اہم ایمرجنسی کلسٹرز کا 3 نکتوں میں خلاصہ دیں',
+  'assistant.suggestVisual': 'اپلوڈ کی گئی تصاویر میں کون سی آفت سب سے زیادہ عام ہے؟',
+  'assistant.draftLoaded': 'اے آئی کا مسودہ نیچے لود ہو گیا ہے — جائزہ لے کر بھیجیں۔',
+  'assistant.broadcast': 'نشری الرٹ',
+  'assistant.level': 'سطح',
+  'assistant.levelInfo': 'معلومات',
+  'assistant.levelWarning': 'انتباہ',
+  'assistant.levelCritical': 'انتہائی',
+  'assistant.message': 'پیغام',
+  'assistant.messagePlaceholder': 'الرٹ لکھیں…',
+  'assistant.sendBroadcast': 'نشری الرٹ بھیجیں',
+  'assistant.broadcastSent': 'نشری الرٹ بھیج دیا گیا۔',
+
+  // ----- Admin -----
+  'admin.title': 'منظوری کے انتظار میں تنظیمی اکاؤنٹس',
+  'admin.organization': 'تنظیم',
+  'admin.role': 'کردار',
+  'admin.requested': 'درخواست کا وقت',
+  'admin.approve': 'منظور کریں',
+  'admin.empty': 'کوئی زیرِ التوا اکاؤنٹ نہیں',
+  'admin.emptyHint': 'جائزے کے انتظار میں نئی تنظیمی رکنیت یہاں نظر آئے گی۔',
+
+  // ----- Chat widget -----
+  'chat.title': 'محافظ',
+  'chat.subtitle': 'بقا اور ایمرجنسی رہنمائی',
+  'chat.open': 'چیٹ کھولیں',
+  'chat.close': 'چیٹ بند کریں',
+  'chat.empty': 'بقا کے لیے مدد مانگیں — پناہ گاہ، فرسٹ ایڈ، انخلاء کے راستے یا سامان۔',
+
+  // ----- States -----
+  'states.error': 'یہ ڈیٹا لوڈ کرتے وقت کچھ غلطی ہو گئی۔',
+  'states.errorHint': 'اپنا کنکشن چیک کر کے دوبارہ کوشش کریں۔',
+
+  // ----- Map -----
+  'map.trappedYes': 'ہاں — لوگ پھنسے ہوئے ہیں',
+  'map.trappedPartial': 'جزوی طور پر',
+  'map.trappedNo': 'نہیں',
+  'map.trappedLabel': 'پھنسے ہوئے',
+  'map.score': 'اسکور',
+  'map.affected': 'متاثرہ',
+  'map.viewDetails': 'تفصیلات دیکھیں →',
+
+  // ----- Relative time -----
+  'time.justNow': 'ابھی',
+  'time.minutesAgo': '{n} منٹ پہلے',
+  'time.hoursAgo': '{n} گھنٹے پہلے',
+  'time.daysAgo': '{n} دن پہلے',
+}
+
+export const dictionaries: Record<Language, typeof en> = { en, ur }
+
+export type TranslationKey = keyof typeof en
