@@ -5,23 +5,22 @@ import { Badge } from '../../../components/ui/Badge'
 import { Table, Thead, Th, Tr, Td } from '../../../components/ui/Table'
 import { EmptyState, ErrorState, TableSkeleton } from '../../../components/ui/States'
 import { useCheckIns } from '../../../hooks/useCheckIns'
+import { useLanguage } from '../../../lib/i18n'
 import { ShieldCheck } from 'lucide-react'
 
 export default function CheckInPage() {
   const { data, isLoading, isError } = useCheckIns()
+  const { t } = useLanguage()
 
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3 rounded-card border border-border bg-card p-4 text-sm text-text-muted">
         <ShieldCheck size={18} className="mt-0.5 shrink-0 text-success" />
-        <p>
-          This only tracks motion, battery level, and check-in signal. Camera, microphone, and messages are never
-          accessed passively.
-        </p>
+        <p>{t('checkIn.privacyNote')}</p>
       </div>
 
       <Card>
-        <h2 className="mb-4 text-base font-semibold text-text">Wellness status</h2>
+        <h2 className="mb-4 text-base font-semibold text-text">{t('checkIn.wellness')}</h2>
 
         {isLoading ? (
           <TableSkeleton rows={3} cols={5} />
@@ -31,11 +30,11 @@ export default function CheckInPage() {
           <Table>
             <Thead>
               <Tr>
-                <Th>Name</Th>
-                <Th>Last motion</Th>
-                <Th>Last check-in</Th>
-                <Th>Battery</Th>
-                <Th>Status</Th>
+                <Th>{t('common.name')}</Th>
+                <Th>{t('checkIn.lastMotion')}</Th>
+                <Th>{t('checkIn.lastCheckIn')}</Th>
+                <Th>{t('checkIn.battery')}</Th>
+                <Th>{t('common.status')}</Th>
               </Tr>
             </Thead>
             <tbody>
@@ -49,7 +48,7 @@ export default function CheckInPage() {
                   </Td>
                   <Td>
                     <Badge tone={row.status === 'flagged' ? 'critical' : 'success'}>
-                      {row.status === 'flagged' ? 'Flagged' : 'Normal'}
+                      {row.status === 'flagged' ? t('checkIn.flagged') : t('checkIn.normal')}
                     </Badge>
                   </Td>
                 </Tr>
@@ -57,7 +56,7 @@ export default function CheckInPage() {
             </tbody>
           </Table>
         ) : (
-          <EmptyState message="No check-ins yet" hint="Field devices reporting in will appear here." />
+          <EmptyState message={t('checkIn.empty')} hint={t('checkIn.emptyHint')} />
         )}
       </Card>
     </div>

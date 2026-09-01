@@ -1,19 +1,33 @@
 'use client'
 
+import { Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Crosshair, X } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
+import { Button } from '../../../components/ui/Button'
 import { Table, Thead, Th, Tr, Td } from '../../../components/ui/Table'
-import { EmptyState, ErrorState, TableSkeleton } from '../../../components/ui/States'
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from '../../../components/ui/States'
 import { useIncidents } from '../../../hooks/useIncidents'
+import { useLanguage } from '../../../lib/i18n'
+import type { TranslationKey } from '../../../lib/dictionaries'
 import type { DamageLevel, Incident, TrappedStatus } from '../../../types'
 
-const TRAPPED_LABEL: Record<TrappedStatus, string> = { yes: 'Yes', partial: 'Partial', no: 'No' }
+const TRAPPED_LABEL_KEY: Record<TrappedStatus, TranslationKey> = {
+  yes: 'responseList.trappedYes',
+  partial: 'responseList.trappedPartial',
+  no: 'responseList.trappedNo',
+}
 const TRAPPED_TONE: Record<TrappedStatus, 'critical' | 'high' | 'success'> = {
   yes: 'critical',
   partial: 'high',
   no: 'success',
 }
-const DAMAGE_LABEL: Record<DamageLevel, string> = { severe: 'Severe', moderate: 'Moderate', minor: 'Minor' }
+const DAMAGE_LABEL_KEY: Record<DamageLevel, TranslationKey> = {
+  severe: 'responseList.damageSevere',
+  moderate: 'responseList.damageModerate',
+  minor: 'responseList.damageMinor',
+}
 const SEVERITY_TEXT: Record<Incident['severityLevel'], string> = {
   critical: 'text-accent',
   high: 'text-secondary',
@@ -21,15 +35,55 @@ const SEVERITY_TEXT: Record<Incident['severityLevel'], string> = {
 }
 
 export default function ResponseListPage() {
+  return (
+    <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+      <ResponseListContent />
+    </Suspense>
+  )
+}
+
+function ResponseListContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const filterIncidentId = searchParams.get('incident')
   const { data, isLoading, isError } = useIncidents()
-  const sorted = [...(data ?? [])].sort((a, b) => b.severityScore - a.severityScore)
+  const { t } = useLanguage()
+
+  const allSorted = [...(data ?? [])].sort((a, b) => b.severityScore - a.severityScore)
+  // ?incident=<id> filters the list to a single case (from the map popup's
+  // "View details" link); without it, every incident is shown.
+  const filteredIncident = filterIncidentId
+    ? allSorted.find((i) => i.id === filterIncidentId) ?? null
+    : null
+  const sorted = filterIncidentId
+    ? filteredIncident
+      ? [filteredIncident]
+      : []
+    : allSorted
+
+  /** Jump to the live map centered on this incident's exact location. */
+  function viewOnMap(incidentId: string) {
+    router.push(`/dashboard/overview?focus=${incidentId}`)
+  }
 
   return (
     <Card>
-      <h2 className="mb-4 text-base font-semibold text-text">All incidents, ranked by urgency</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-semibold text-text">
+          {filterIncidentId ? t('responseList.incidentDetails') : t('responseList.allIncidents')}
+        </h2>
+        {filteredIncident && (
+          <button
+            onClick={() => router.push('/dashboard/response-list')}
+            className="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text"
+          >
+            <X size={13} /> {t('responseList.clearFilter')}
+          </button>
+        )}
+      </div>
 
       {isLoading ? (
-        <TableSkeleton rows={5} cols={6} />
+        <TableSkeleton rows={5} cols={7} />
       ) : isError ? (
         <ErrorState />
       ) : sorted.length > 0 ? (
@@ -37,11 +91,12 @@ export default function ResponseListPage() {
           <Thead>
             <Tr>
               <Th>#</Th>
-              <Th>Incident</Th>
-              <Th>Affected</Th>
-              <Th>Trapped</Th>
-              <Th>Damage</Th>
-              <Th>Score</Th>
+              <Th>{t('responseList.incident')}</Th>
+              <Th>{t('responseList.affected')}</Th>
+              <Th>{t('responseList.trapped')}</Th>
+              <Th>{t('responseList.damage')}</Th>
+              <Th>{t('responseList.score')}</Th>
+              <Th>{t('common.location')}</Th>
             </Tr>
           </Thead>
           <tbody>
@@ -54,20 +109,37 @@ export default function ResponseListPage() {
                 </Td>
                 <Td>{incident.peopleAffected}</Td>
                 <Td>
-                  <Badge tone={TRAPPED_TONE[incident.trapped]}>{TRAPPED_LABEL[incident.trapped]}</Badge>
+                  <Badge tone={TRAPPED_TONE[incident.trapped]}>{t(TRAPPED_LABEL_KEY[incident.trapped])}</Badge>
                 </Td>
-                <Td className="text-text-muted">{DAMAGE_LABEL[incident.structuralDamage]}</Td>
+                <Td className="text-text-muted">{t(DAMAGE_LABEL_KEY[incident.structuralDamage])}</Td>
                 <Td>
                   <span className={`text-lg font-bold ${SEVERITY_TEXT[incident.severityLevel]}`}>
                     {incident.severityScore}
                   </span>
                 </Td>
+                <Td>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="font-mono text-xs text-text-muted">
+                      {incident.location.lat.toFixed(4)}, {incident.location.lng.toFixed(4)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="px-2.5 py-1 text-xs"
+                      onClick={() => viewOnMap(incident.id)}
+                    >
+                      <Crosshair size={13} /> {t('responseList.getLocation')}
+                    </Button>
+                  </div>
+                </Td>
               </Tr>
             ))}
           </tbody>
         </Table>
+      ) : filterIncidentId ? (
+        <EmptyState message={t('responseList.notFound')} hint={t('responseList.notFoundHint')} />
       ) : (
-        <EmptyState message="No incidents reported yet" hint="New reports from the field will be ranked here automatically." />
+        <EmptyState message={t('common.noIncidentsYet')} hint={t('responseList.emptyHint')} />
       )}
     </Card>
   )

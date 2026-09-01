@@ -7,11 +7,13 @@ import { Label, Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
 import { useLogin } from '../../hooks/useAuth'
 import { useAuthContext } from '../../lib/authContext'
+import { useLanguage } from '../../lib/i18n'
 
 export default function SignInPage() {
   const router = useRouter()
   const login = useLogin()
   const { setUser } = useAuthContext()
+  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [pendingNotice, setPendingNotice] = useState(false)
@@ -35,10 +37,10 @@ export default function SignInPage() {
   }
 
   return (
-    <AuthShell title="Sign in" subtitle="Access your dispatch or organization dashboard">
+    <AuthShell title={t('signIn.title')} subtitle={t('signIn.subtitle')}>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t('signIn.email')}</Label>
           <Input
             id="email"
             type="email"
@@ -49,7 +51,7 @@ export default function SignInPage() {
           />
         </div>
         <div>
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t('signIn.password')}</Label>
           <Input
             id="password"
             type="password"
@@ -62,18 +64,18 @@ export default function SignInPage() {
 
         {pendingNotice && (
           <div className="rounded-xl border border-secondary/30 bg-secondary/10 px-3.5 py-3 text-sm text-secondary">
-            Your account is awaiting approval.
+            {t('signIn.pendingApproval')}
           </div>
         )}
 
         {login.isError && (
           <div className="rounded-xl border border-accent/30 bg-accent/10 px-3.5 py-3 text-sm text-accent">
-            Couldn&apos;t sign in. Check your email and password and try again.
+            {t('signIn.error')}
           </div>
         )}
 
         <Button type="submit" className="w-full" disabled={login.isPending}>
-          {login.isPending ? 'Signing in…' : 'Sign in'}
+          {login.isPending ? t('signIn.submitting') : t('signIn.title')}
         </Button>
       </form>
     </AuthShell>

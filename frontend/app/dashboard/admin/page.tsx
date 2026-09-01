@@ -5,15 +5,17 @@ import { Button } from '../../../components/ui/Button'
 import { Table, Thead, Th, Tr, Td } from '../../../components/ui/Table'
 import { EmptyState, ErrorState, TableSkeleton } from '../../../components/ui/States'
 import { usePendingUsers, useApproveUser } from '../../../hooks/useAdmin'
+import { useLanguage } from '../../../lib/i18n'
 import { timeAgo } from '../../../lib/utils'
 
 export default function AdminApprovalPage() {
   const { data, isLoading, isError } = usePendingUsers()
   const approve = useApproveUser()
+  const { t, language } = useLanguage()
 
   return (
     <Card>
-      <h2 className="mb-4 text-base font-semibold text-text">Pending organization accounts</h2>
+      <h2 className="mb-4 text-base font-semibold text-text">{t('admin.title')}</h2>
 
       {isLoading ? (
         <TableSkeleton rows={3} cols={5} />
@@ -23,10 +25,10 @@ export default function AdminApprovalPage() {
         <Table>
           <Thead>
             <Tr>
-              <Th>Name</Th>
-              <Th>Organization</Th>
-              <Th>Role</Th>
-              <Th>Requested</Th>
+              <Th>{t('common.name')}</Th>
+              <Th>{t('admin.organization')}</Th>
+              <Th>{t('admin.role')}</Th>
+              <Th>{t('admin.requested')}</Th>
               <Th></Th>
             </Tr>
           </Thead>
@@ -36,10 +38,10 @@ export default function AdminApprovalPage() {
                 <Td className="font-medium">{user.fullName}</Td>
                 <Td className="text-text-muted">{user.organizationName ?? '—'}</Td>
                 <Td className="text-text-muted">{user.role.replace('_', ' ')}</Td>
-                <Td className="text-text-muted">{timeAgo(user.requestedAt)}</Td>
+                <Td className="text-text-muted">{timeAgo(user.requestedAt, language)}</Td>
                 <Td>
                   <Button variant="secondary" onClick={() => approve.mutate(user.id)} disabled={approve.isPending}>
-                    Approve
+                    {t('admin.approve')}
                   </Button>
                 </Td>
               </Tr>
@@ -47,7 +49,7 @@ export default function AdminApprovalPage() {
           </tbody>
         </Table>
       ) : (
-        <EmptyState message="No pending accounts" hint="New organization sign-ups awaiting review will appear here." />
+        <EmptyState message={t('admin.empty')} hint={t('admin.emptyHint')} />
       )}
     </Card>
   )
