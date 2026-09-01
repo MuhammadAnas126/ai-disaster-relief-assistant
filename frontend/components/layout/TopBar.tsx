@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutGrid,
-  Package,
   MonitorPlay,
   Video,
   ListOrdered,
@@ -14,15 +13,16 @@ import {
   LogOut,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { useLanguage } from '../../lib/i18n'
+import type { TranslationKey } from '../../lib/dictionaries'
 import type { User } from '../../types'
 
-const NAV_ITEMS = [
-  { to: '/dashboard/overview', icon: LayoutGrid, label: 'Overview' },
-  { to: '/dashboard/inventory', icon: Package, label: 'Inventory' },
-  { to: '/dashboard/check-in', icon: MonitorPlay, label: 'Check-in' },
-  { to: '/dashboard/connect', icon: Video, label: 'Connect' },
-  { to: '/dashboard/response-list', icon: ListOrdered, label: 'Response list' },
-  { to: '/dashboard/assistant', icon: MessageCircle, label: 'Assistant' },
+const NAV_ITEMS: { to: string; icon: typeof LayoutGrid; labelKey: TranslationKey }[] = [
+  { to: '/dashboard/overview', icon: LayoutGrid, labelKey: 'topBar.overview' },
+  { to: '/dashboard/check-in', icon: MonitorPlay, labelKey: 'topBar.checkIn' },
+  { to: '/dashboard/connect', icon: Video, labelKey: 'topBar.connect' },
+  { to: '/dashboard/response-list', icon: ListOrdered, labelKey: 'topBar.responseList' },
+  { to: '/dashboard/assistant', icon: MessageCircle, labelKey: 'topBar.assistant' },
 ]
 
 interface TopBarProps {
@@ -33,6 +33,7 @@ interface TopBarProps {
 export function TopBar({ user, onSignOut }: TopBarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useLanguage()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -58,13 +59,14 @@ export function TopBar({ user, onSignOut }: TopBarProps) {
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-accent-foreground">
           <ShieldAlert size={18} />
         </div>
-        <span className="text-base font-bold text-text">AI Disaster Relief</span>
+        <span className="text-base font-bold text-text">{t('common.appTitle')}</span>
       </div>
 
       <div className="flex items-center gap-4">
-        <nav className="flex items-center gap-1.5" aria-label="Dashboard sections">
-          {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
+        <nav className="flex items-center gap-1.5" aria-label={t('topBar.sections')}>
+          {NAV_ITEMS.map(({ to, icon: Icon, labelKey }) => {
             const isActive = pathname === to
+            const label = t(labelKey)
             return (
               <Link
                 key={to}
@@ -90,7 +92,7 @@ export function TopBar({ user, onSignOut }: TopBarProps) {
           <button
             onClick={() => setMenuOpen((open) => !open)}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground transition-opacity hover:opacity-90"
-            title={user?.fullName ?? 'Account'}
+            title={user?.fullName ?? t('topBar.account')}
             aria-haspopup="menu"
             aria-expanded={menuOpen}
           >
@@ -103,7 +105,7 @@ export function TopBar({ user, onSignOut }: TopBarProps) {
               className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-card border border-border bg-card shadow-lg"
             >
               <div className="border-b border-border px-4 py-3">
-                <div className="truncate text-sm font-semibold text-text">{user?.fullName ?? 'Not signed in'}</div>
+                <div className="truncate text-sm font-semibold text-text">{user?.fullName ?? t('topBar.notSignedIn')}</div>
                 {user?.email && <div className="truncate text-xs text-text-muted">{user.email}</div>}
               </div>
               <button
@@ -112,7 +114,7 @@ export function TopBar({ user, onSignOut }: TopBarProps) {
                 className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-accent hover:bg-accent/10"
               >
                 <LogOut size={15} />
-                Sign out
+                {t('topBar.signOut')}
               </button>
             </div>
           )}

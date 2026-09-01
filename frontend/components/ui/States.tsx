@@ -1,4 +1,7 @@
+'use client'
+
 import { Inbox } from 'lucide-react'
+import { useLanguage } from '../../lib/i18n'
 import { cn } from '../../lib/utils'
 
 export function Skeleton({ className }: { className?: string }) {
@@ -38,11 +41,12 @@ export function EmptyState({ message, hint }: { message: string; hint?: string }
   )
 }
 
-export function ErrorState({ message = 'Something went wrong loading this data.' }: { message?: string }) {
+export function ErrorState({ message }: { message?: string }) {
+  const { t } = useLanguage()
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-10 text-center">
-      <p className="text-sm font-medium text-accent">{message}</p>
-      <p className="text-xs text-text-faint">Check your connection and try again.</p>
+      <p className="text-sm font-medium text-accent">{message ?? t('states.error')}</p>
+      <p className="text-xs text-text-faint">{t('states.errorHint')}</p>
     </div>
   )
 }
