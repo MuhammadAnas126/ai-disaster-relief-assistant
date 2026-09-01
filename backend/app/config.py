@@ -6,6 +6,7 @@ load_dotenv()
 
 class Settings:
     DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY")
+    DASHSCOPE_BASE_URL: str = os.getenv("DASHSCOPE_BASE_URL", "")
     ALIBABA_CLOUD_ACCESS_KEY_ID: str = os.getenv("ALIBABA_CLOUD_ACCESS_KEY_ID")
     ALIBABA_CLOUD_ACCESS_KEY_SECRET: str = os.getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET")
     OSS_BUCKET_NAME: str = os.getenv("OSS_BUCKET_NAME")
