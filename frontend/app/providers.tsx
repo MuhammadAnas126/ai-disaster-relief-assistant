@@ -6,8 +6,8 @@ import { AuthProvider } from '../lib/authContext'
 import { LanguageProvider } from '../lib/i18n'
 
 // NOTE: The floating ChatWidget is intentionally NOT mounted globally here.
-// It is scoped to the public "Register Your Case" module (app/register/case)
-// so victims get survival guidance exactly where they need it.
+// It lives on the public landing page (app/page) so victims get survival
+// guidance, SOS filing, and bilingual voice chat before navigating anywhere.
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(

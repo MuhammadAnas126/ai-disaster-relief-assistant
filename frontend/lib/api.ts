@@ -8,6 +8,7 @@ import type {
   EvidenceRecord,
   Incident,
   IncidentAnalysis,
+  SosPrefill,
   User,
 } from '../types'
 
@@ -345,7 +346,7 @@ export const assistantApi = {
   ): Promise<ChatMessage> =>
     withFallback<ChatMessage>(
       () =>
-        request<{ reply: string }>('/chatbot/message', {
+        request<{ reply: string; sos?: SosPrefill | null }>('/chatbot/message', {
           method: 'POST',
           body: JSON.stringify({
             message,
@@ -356,6 +357,7 @@ export const assistantApi = {
           id: `msg-${Date.now()}`,
           role: 'assistant' as const,
           text: res.reply,
+          sosPrefill: res.sos ?? undefined,
           sentAt: new Date().toISOString(),
         })),
       async () => {

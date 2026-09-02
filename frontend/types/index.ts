@@ -83,11 +83,30 @@ export interface AdminAssistantReply {
   broadcast: BroadcastDraft | null
 }
 
+/** Case fields Muhafiz extracts from the conversation when the user needs
+ *  rescue — pre-fills the Register Your Case form on confirmation. */
+export interface SosPrefill {
+  /** One-line situation summary in the user's own language (EN or UR) */
+  description: string
+  /** Named place the user stated (e.g. "Karachi") — becomes the case label */
+  location?: string | null
+  /** Number of affected people parsed from the message */
+  peopleAffected?: number | null
+  /** Inferred trapped status */
+  trapped?: TrappedStatus | null
+  /** GPS coordinates from the case context, when available */
+  lat?: number | null
+  lng?: number | null
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   text: string
   sentAt: string
+  /** Extracted SOS prefill set when Muhafiz offers to file an SOS —
+   *  rendered as a 1-tap action card that pre-fills Register Your Case. */
+  sosPrefill?: SosPrefill
 }
 
 export interface AssistantContext {

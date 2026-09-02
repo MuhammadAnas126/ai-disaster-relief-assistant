@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { LogIn, TriangleAlert, ChevronRight, ShieldAlert } from 'lucide-react'
 import { LanguageToggle } from '../components/layout/LanguageToggle'
 import { Badge } from '../components/ui/Badge'
+import { ChatWidget } from '../components/ui/ChatWidget'
 import { useLanguage } from '../lib/i18n'
 import type { TranslationKey } from '../lib/dictionaries'
 import { cn } from '../lib/utils'
@@ -111,6 +112,10 @@ export default function EntrySelect() {
           <p className="mt-6 text-center text-xs text-text-faint">{t('landing.noAccountNeeded')}</p>
         </div>
       </main>
+
+      {/* Floating Muhafiz assistant — survival guidance, SOS filing, hotlines,
+          and bilingual voice chat, available before any navigation */}
+      <ChatWidget />
     </div>
   )
 }
