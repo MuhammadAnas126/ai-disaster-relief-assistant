@@ -173,6 +173,7 @@ const en = {
   'connect.linkedCase': 'Case',
   'connect.noAnalysis': 'AI analysis unavailable',
   'connect.openMedia': 'Open full media',
+  'connect.deleteEvidence': 'Delete evidence',
 
   // ----- Response list -----
   'responseList.incidentDetails': 'Incident details',
@@ -408,6 +409,7 @@ const ur: Record<keyof typeof en, string> = {
   'connect.linkedCase': 'کیس',
   'connect.noAnalysis': 'اے آئی تجزیہ دستیاب نہیں',
   'connect.openMedia': 'پوری میڈیا کھولیں',
+  'connect.deleteEvidence': 'ثبوت حذف کریں',
 
   // ----- Response list -----
   'responseList.incidentDetails': 'واقعے کی تفصیلات',

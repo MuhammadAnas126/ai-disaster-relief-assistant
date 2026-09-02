@@ -31,3 +31,16 @@ export function useUploadEvidence() {
     },
   })
 }
+
+/** Delete one evidence submission and its media files (admin action). */
+export function useDeleteEvidence() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => evidenceApi.delete(id),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<EvidenceRecord[]>(evidenceKey, (existing) =>
+        existing ? existing.filter((e) => e.id !== id) : existing,
+      )
+    },
+  })
+}

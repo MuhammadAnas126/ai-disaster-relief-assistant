@@ -278,6 +278,15 @@ export const evidenceApi = {
         return []
       },
     ),
+
+  delete: (id: string) =>
+    withFallback<{ id: string; status: string }>(
+      () => request(`/evidence/${id}`, { method: 'DELETE' }),
+      async () => {
+        await delay(200)
+        return { id, status: 'deleted' }
+      },
+    ),
 }
 
 // ---------- Assistant chat (Qwen-Max powered chatbot) ----------

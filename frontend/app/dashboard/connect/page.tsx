@@ -8,12 +8,13 @@ import {
   UploadCloud,
   Video as VideoIcon,
   VideoOff,
+  X,
 } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { Label, Select } from '../../../components/ui/Input'
 import { Button } from '../../../components/ui/Button'
 import { EmptyState, ErrorState, Skeleton } from '../../../components/ui/States'
-import { useEvidenceGallery } from '../../../hooks/useEvidence'
+import { useDeleteEvidence, useEvidenceGallery } from '../../../hooks/useEvidence'
 import { evidenceMediaUrl } from '../../../lib/api'
 import { useLanguage } from '../../../lib/i18n'
 import { cn, timeAgo } from '../../../lib/utils'
@@ -48,7 +49,7 @@ function formatVictimStatus(status: string | null | undefined, t: (key: Translat
 }
 
 /** One gallery tile: thumbnail/preview plus its AI triage summary. */
-function EvidenceTile({ record }: { record: EvidenceRecord }) {
+function EvidenceTile({ record, onDelete }: { record: EvidenceRecord; onDelete?: () => void }) {
   const { t, language } = useLanguage()
   const media = evidenceMediaUrl(record.mediaUrl)
   const thumb = evidenceMediaUrl(record.thumbnailUrl ?? record.mediaUrl)
@@ -56,61 +57,74 @@ function EvidenceTile({ record }: { record: EvidenceRecord }) {
   const trapped = record.trapped === 'yes' || record.trapped === 'partial'
 
   return (
-    <a
-      href={media ?? undefined}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={t('connect.openMedia')}
-      className="block overflow-hidden rounded-xl border border-border bg-bg/50 transition-colors hover:border-secondary/60"
-    >
-      <div className="relative aspect-video bg-black/40">
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element -- evidence media is served by the backend's /media mount
-          <img src={thumb} alt={record.id} className="h-full w-full object-cover" loading="lazy" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Images size={20} className="text-text-faint" />
-          </div>
-        )}
-        <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-          {record.source === 'stream' ? <Radio size={10} /> : <UploadCloud size={10} />}
-          {record.source === 'stream' ? t('connect.sourceStream') : t('connect.sourceUpload')}
-        </span>
-        {record.mediaType === 'video' && (
-          <span className="absolute inset-0 flex items-center justify-center">
-            <FileVideo size={22} className="text-white/90 drop-shadow" />
+    <div className="relative block overflow-hidden rounded-xl border border-border bg-bg/50 transition-colors hover:border-secondary/60">
+      {onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="absolute right-1.5 top-1.5 z-10 rounded bg-black/70 p-1 text-white transition-colors hover:bg-red-600"
+          aria-label={t('connect.deleteEvidence')}
+          title={t('connect.deleteEvidence')}
+        >
+          <X size={12} />
+        </button>
+      )}
+      <a
+        href={media ?? undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={t('connect.openMedia')}
+        className="block"
+      >
+        <div className="relative aspect-video bg-black/40">
+          {thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element -- evidence media is served by the backend's /media mount
+            <img src={thumb} alt={record.id} className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Images size={20} className="text-text-faint" />
+            </div>
+          )}
+          <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+            {record.source === 'stream' ? <Radio size={10} /> : <UploadCloud size={10} />}
+            {record.source === 'stream' ? t('connect.sourceStream') : t('connect.sourceUpload')}
           </span>
-        )}
-        {trapped && (
-          <span className="absolute right-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-            {t('connect.trappedFlag')}
-          </span>
-        )}
-      </div>
-      <div className="space-y-1 p-2.5">
-        {analysis ? (
-          <>
-            <p className="text-xs font-semibold text-text">
-              {formatDisasterType(analysis.disasterType, t)} · {formatVictimStatus(analysis.status, t)}
-              <span className="ml-1 font-normal text-text-faint">
-                ({Math.round(analysis.confidence * 100)}%)
-              </span>
-            </p>
-            {analysis.hazards.length > 0 && (
-              <p className="truncate text-[11px] text-text-faint" title={analysis.hazards.join(', ')}>
-                {analysis.hazards.join(', ')}
+          {record.mediaType === 'video' && (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <FileVideo size={22} className="text-white/90 drop-shadow" />
+            </span>
+          )}
+          {trapped && (
+            <span className="absolute right-1.5 top-7 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {t('connect.trappedFlag')}
+            </span>
+          )}
+        </div>
+        <div className="space-y-1 p-2.5">
+          {analysis ? (
+            <>
+              <p className="text-xs font-semibold text-text">
+                {formatDisasterType(analysis.disasterType, t)} · {formatVictimStatus(analysis.status, t)}
+                <span className="ml-1 font-normal text-text-faint">
+                  ({Math.round(analysis.confidence * 100)}%)
+                </span>
               </p>
-            )}
-          </>
-        ) : (
-          <p className="text-[11px] text-text-faint">{t('connect.noAnalysis')}</p>
-        )}
-        <p className="text-[10px] text-text-faint">
-          {timeAgo(record.receivedAt, language)}
-          {record.caseId ? ` · ${t('connect.linkedCase')} ${record.caseId}` : ''}
-        </p>
-      </div>
-    </a>
+              {analysis.hazards.length > 0 && (
+                <p className="truncate text-[11px] text-text-faint" title={analysis.hazards.join(', ')}>
+                  {analysis.hazards.join(', ')}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-[11px] text-text-faint">{t('connect.noAnalysis')}</p>
+          )}
+          <p className="text-[10px] text-text-faint">
+            {timeAgo(record.receivedAt, language)}
+            {record.caseId ? ` · ${t('connect.linkedCase')} ${record.caseId}` : ''}
+          </p>
+        </div>
+      </a>
+    </div>
   )
 }
 
@@ -124,6 +138,7 @@ export default function ConnectPage() {
 
   const evidenceQuery = useEvidenceGallery()
   const evidence = useMemo(() => evidenceQuery.data ?? [], [evidenceQuery.data])
+  const deleteEvidence = useDeleteEvidence()
 
   const stats = useMemo(
     () => ({
@@ -199,7 +214,11 @@ export default function ConnectPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {evidence.map((record) => (
-              <EvidenceTile key={record.id} record={record} />
+              <EvidenceTile
+                key={record.id}
+                record={record}
+                onDelete={() => deleteEvidence.mutate(record.id)}
+              />
             ))}
           </div>
         )}
