@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { Button } from '../../../components/ui/Button'
 import { Input, Label, Select, Textarea } from '../../../components/ui/Input'
@@ -8,7 +8,6 @@ import { EmptyState } from '../../../components/ui/States'
 import { MarkdownText } from '../../../components/ui/Markdown'
 import { TypingIndicator } from '../../../components/ui/TypingIndicator'
 import { useSendAdminChatMessage } from '../../../hooks/useAssistant'
-import { useSendAlert } from '../../../hooks/useAlerts'
 import { useLanguage } from '../../../lib/i18n'
 import type { AlertLevel, AssistantContext, ChatMessage } from '../../../types'
 import { cn } from '../../../lib/utils'
@@ -42,7 +41,13 @@ export default function AssistantPage() {
 
   const [alertLevel, setAlertLevel] = useState<AlertLevel>('warning')
   const [alertMessage, setAlertMessage] = useState('')
-  const sendAlert = useSendAlert()
+  const [showSent, setShowSent] = useState(false)
+
+  useEffect(() => {
+    if (!showSent) return
+    const t = setTimeout(() => setShowSent(false), 2500)
+    return () => clearTimeout(t)
+  }, [showSent])
 
   function submitMessage(text: string) {
     const value = text.trim()
@@ -78,11 +83,19 @@ export default function AssistantPage() {
 
   function handleBroadcast(e: FormEvent) {
     e.preventDefault()
-    if (!alertMessage.trim()) return
-    sendAlert.mutate(
-      { level: alertLevel, message: alertMessage },
-      { onSuccess: () => { setAlertMessage(''); setDraftLoaded(false) } },
-    )
+    const message = alertMessage.trim()
+    if (!message) return
+
+    const alertData = {
+      id: Date.now(),
+      level: alertLevel,
+      message,
+      timestamp: new Date().toISOString(),
+    }
+    localStorage.setItem('latest_broadcast', JSON.stringify(alertData))
+    setAlertMessage('')
+    setDraftLoaded(false)
+    setShowSent(true)
   }
 
   return (
@@ -164,11 +177,11 @@ export default function AssistantPage() {
               placeholder={t('assistant.messagePlaceholder')}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={sendAlert.isPending}>
-            {sendAlert.isPending ? t('common.sending') : t('assistant.sendBroadcast')}
+          <Button type="submit" className="w-full">
+            {t('assistant.sendBroadcast')}
           </Button>
-          {sendAlert.isSuccess && <p className="text-center text-xs text-success">{t('assistant.broadcastSent')}</p>}
-          {draftLoaded && !sendAlert.isSuccess && (
+          {showSent && <p className="text-center text-xs text-success">{t('assistant.broadcastSent')}</p>}
+          {draftLoaded && !showSent && (
             <p className="text-center text-xs text-secondary">{t('assistant.draftLoaded')}</p>
           )}
         </form>
