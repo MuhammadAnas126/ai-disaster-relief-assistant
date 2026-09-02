@@ -78,6 +78,7 @@ const en = {
   'registerCase.locating': 'Locating…',
   'registerCase.shareLocation': 'Share My Location',
   'registerCase.locationCaptured': 'Location captured — the pin now marks your GPS position.',
+  'registerCase.locationGeocoded': "Marked on the map from your description — drag the pin if it isn't exact.",
   'registerCase.locationError':
     "Couldn't access your location. Check browser permissions, or tap the map to drop the pin manually.",
   'registerCase.tapMapHint': "Tap the map to drop or move the pin if it isn't exact.",
@@ -328,6 +329,7 @@ const ur: Record<keyof typeof en, string> = {
   'registerCase.locating': 'مقام معلوم ہو رہا ہے…',
   'registerCase.shareLocation': 'میرا مقام شیئر کریں',
   'registerCase.locationCaptured': 'مقام حاصل ہو گیا — پن اب آپ کی جی پی ایس پوزیشن ظاہر کر رہا ہے۔',
+  'registerCase.locationGeocoded': 'آپ کی بتائی گئی جگہ نقشے پر نشان زد کر دی گئی — اگر پن بالکل درست نہ ہو تو اسے کھینچ کر درست کریں۔',
   'registerCase.locationError':
     'آپ کے مقام تک رسائی نہیں ہو سکی۔ براؤزر کی اجازتیں چیک کریں، یا نقشے پر ٹیپ کر کے پن خود رکھیں۔',
   'registerCase.tapMapHint': 'اگر پن درست نہ ہو تو نقشے پر ٹیپ کر کے پن رکھیں یا ہٹائیں۔',

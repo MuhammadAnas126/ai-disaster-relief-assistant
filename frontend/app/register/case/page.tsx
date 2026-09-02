@@ -1,10 +1,9 @@
 'use client'
 
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { AuthShell } from '../../../components/layout/AuthShell'
 import { Label, Input, Textarea } from '../../../components/ui/Input'
 import { Button } from '../../../components/ui/Button'
-import { ChatWidget } from '../../../components/ui/ChatWidget'
 import { PinDropMapClient } from '../../../components/map/PinDropMapClient'
 import { useCreateIncident } from '../../../hooks/useIncidents'
 import { useLiveShare, type LiveShareMetadata } from '../../../hooks/useLiveShare'
@@ -24,8 +23,9 @@ import {
   Loader2,
   Siren,
   UploadCloud,
+  X,
 } from 'lucide-react'
-import type { AssistantContext, EvidenceRecord, LiveAnalysis, TrappedStatus } from '../../../types'
+import type { AlertLevel, EvidenceRecord, LiveAnalysis, TrappedStatus } from '../../../types'
 import { useLanguage } from '../../../lib/i18n'
 import type { TranslationKey } from '../../../lib/dictionaries'
 import { cn } from '../../../lib/utils'
@@ -83,26 +83,161 @@ function formatVictimStatus(status: string | null | undefined, t: (key: Translat
   return STATUS_LABEL[status] ? t(STATUS_LABEL[status]) : status
 }
 
+/** Nominatim (OpenStreetMap) search — the same map data the pin map renders.
+ *  Resolves the address Muhafiz extracted from the chat into coordinates;
+ *  best-effort, failures keep the default pin. */
+async function geocodeAddress(query: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
+      { headers: { Accept: 'application/json' } },
+    )
+    if (!res.ok) return null
+    const results = (await res.json()) as { lat: string; lon: string }[]
+    const hit = results[0]
+    if (!hit) return null
+    const lat = Number(hit.lat)
+    const lng = Number(hit.lon)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+    return { lat, lng }
+  } catch {
+    return null
+  }
+}
+
+/** Strip house/street numbers and "near" phrasing Nominatim can't parse,
+ *  leaving an area-level query ("Model Town, Lahore") for the retry. */
+function simplifyAddress(address: string): string {
+  return address
+    .replace(/\b(?:house|ghar)\s*(?:no\.?|number|#)?\s*\d+/gi, '')
+    .replace(/\b(?:near|nearby)\b/gi, '')
+    .replace(/نزدیک/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s,]+|[\s,]+$/g, '')
+}
+
 export default function RegisterCasePage() {
   const createIncident = useCreateIncident()
   const uploadEvidence = useUploadEvidence()
-  const { t, language } = useLanguage()
+  const { t } = useLanguage()
   const [description, setDescription] = useState('')
   const [peopleAffected, setPeopleAffected] = useState('')
   const [trapped, setTrapped] = useState<TrappedStatus>('no')
   const [trappedDetails, setTrappedDetails] = useState('')
   const [location, setLocation] = useState(DEFAULT_LOCATION)
-  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle')
+  // Named place extracted by Muhafiz (e.g. "Karachi") — shown next to the map
+  // and stored as the case label; empty until the SOS card or user sets it.
+  const [locationLabel, setLocationLabel] = useState('')
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'success' | 'geocoded' | 'error'>('idle')
   const [evidenceTab, setEvidenceTab] = useState<'upload' | 'stream'>('upload')
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([])
   const [uploadedEvidenceIds, setUploadedEvidenceIds] = useState<string[]>([])
+  const [broadcast, setBroadcast] = useState<{
+    id: number
+    level: AlertLevel
+    message: string
+    timestamp: string
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const pendingCounterRef = useRef(0)
 
+  // Listen for admin broadcasts posted to localStorage from other tabs.
+  // Remember which broadcast the victim dismissed so a page refresh doesn't
+  // bring the same alert back.
+  useEffect(() => {
+    const BROADCAST_KEY = 'latest_broadcast'
+    const DISMISSED_KEY = 'broadcast_dismissed'
+
+    function getDismissedId(): number | null {
+      const raw = localStorage.getItem(DISMISSED_KEY)
+      if (!raw) return null
+      const id = Number(raw)
+      return Number.isNaN(id) ? null : id
+    }
+
+    function parseBroadcast(raw: string | null) {
+      if (!raw) return null
+      try {
+        const data = JSON.parse(raw)
+        if (data && typeof data.id === 'number' && data.level && data.message) {
+          const dismissedId = getDismissedId()
+          if (dismissedId !== null && data.id <= dismissedId) return null
+          return data as { id: number; level: AlertLevel; message: string; timestamp: string }
+        }
+      } catch {
+        // Ignore malformed broadcast payload.
+      }
+      return null
+    }
+
+    function handleStorage(e: StorageEvent) {
+      if (e.key === BROADCAST_KEY) {
+        const next = parseBroadcast(e.newValue)
+        if (next) setBroadcast(next)
+      }
+    }
+
+    // Show the most recent broadcast on first mount unless the victim already
+    // dismissed it earlier (including before a page refresh).
+    const current = parseBroadcast(localStorage.getItem(BROADCAST_KEY))
+    if (current) setBroadcast(current)
+
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
+  function dismissBroadcast() {
+    if (broadcast) {
+      localStorage.setItem('broadcast_dismissed', String(broadcast.id))
+    }
+    setBroadcast(null)
+  }
+
+  // Pre-fill the form when arriving from Muhafiz's 1-tap SOS card. The
+  // assistant extracts these from the chat conversation — description in the
+  // victim's own language, a full address, people count, trapped status, and
+  // GPS coordinates when the case context carried them — so the victim only
+  // reviews and confirms before submitting.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const prefillDescription = params.get('description')
+    const prefillLocation = params.get('location')
+    const prefillPeople = params.get('peopleAffected')
+    const prefillTrapped = params.get('trapped')
+    const prefillLat = Number(params.get('lat'))
+    const prefillLng = Number(params.get('lng'))
+    const hasCoords =
+      Number.isFinite(prefillLat) && Number.isFinite(prefillLng) && (prefillLat !== 0 || prefillLng !== 0)
+    if (prefillDescription) setDescription(prefillDescription)
+    if (prefillLocation) setLocationLabel(prefillLocation)
+    if (prefillPeople && /^\d+$/.test(prefillPeople)) setPeopleAffected(prefillPeople)
+    if (prefillTrapped === 'yes' || prefillTrapped === 'partial') setTrapped(prefillTrapped)
+    if (hasCoords) {
+      setLocation({ lat: prefillLat, lng: prefillLng })
+    } else if (prefillLocation) {
+      // No GPS coordinates in the case context — geocode the stated address
+      // (same OpenStreetMap data the pin map renders) so the pin lands on the
+      // described place instead of the default city center.
+      void (async () => {
+        let hit = await geocodeAddress(prefillLocation)
+        if (!hit) {
+          const simplified = simplifyAddress(prefillLocation)
+          if (simplified && simplified !== prefillLocation) hit = await geocodeAddress(simplified)
+        }
+        if (hit) {
+          setLocation(hit)
+          setGeoStatus('geocoded')
+        }
+      })()
+    }
+  }, [])
+
   // Victim details travel with every streamed frame so archived evidence can
   // answer admin queries like "trapped victims based on recent photos".
+  // The label carries Muhafiz's extracted place name when present.
+  const caseLocationLabel = locationLabel || t('registerCase.reportedLocation')
   const liveShareMetadata: LiveShareMetadata = {
-    location: { lat: location.lat, lng: location.lng, label: t('registerCase.reportedLocation') },
+    location: { lat: location.lat, lng: location.lng, label: caseLocationLabel },
     trapped,
     peopleAffected: Number(peopleAffected) || 0,
   }
@@ -156,7 +291,7 @@ export default function RegisterCasePage() {
           file,
           frame,
           source: 'upload',
-          location: { lat: location.lat, lng: location.lng, label: t('registerCase.reportedLocation') },
+          location: { lat: location.lat, lng: location.lng, label: caseLocationLabel },
           trapped,
           peopleAffected: Number(peopleAffected) || 0,
         })
@@ -197,21 +332,9 @@ export default function RegisterCasePage() {
       peopleAffected: Number(peopleAffected) || 0,
       trapped,
       isGuestReport: true,
-      location: { lat: location.lat, lng: location.lng, label: t('registerCase.reportedLocation') },
+      location: { lat: location.lat, lng: location.lng, label: caseLocationLabel },
       evidenceIds: allEvidenceIds.length > 0 ? allEvidenceIds : undefined,
     })
-  }
-
-  // Live case context for the AI assistant — lets it personalize guidance
-  // (flood → water safety, trapped → signaling/battery tips, etc.) and reply
-  // in the victim's selected UI language.
-  const chatContext: AssistantContext = {
-    situation: description,
-    location: `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`,
-    trapped,
-    peopleAffected: Number(peopleAffected) || 0,
-    submitted: createIncident.isSuccess,
-    language,
   }
 
   if (createIncident.isSuccess) {
@@ -221,14 +344,42 @@ export default function RegisterCasePage() {
           <CheckCircle2 size={36} className="text-success" />
           <p className="text-sm text-text-muted">{t('registerCase.receivedMessage')}</p>
         </div>
-        {/* Assistant stays available while the victim waits for help */}
-        <ChatWidget context={chatContext} />
       </AuthShell>
     )
   }
 
   return (
     <AuthShell title={t('registerCase.title')} subtitle={t('registerCase.subtitle')} wide>
+      {/* Emergency broadcast from the admin dashboard */}
+      {broadcast && (
+        <div
+          className={cn(
+            'relative mb-4 rounded-xl border px-4 py-3 text-sm font-medium text-white shadow-lg',
+            broadcast.level === 'critical' && 'border-red-500 bg-red-600',
+            broadcast.level === 'warning' && 'border-orange-500 bg-orange-500',
+            broadcast.level === 'info' && 'border-blue-500 bg-blue-600',
+          )}
+        >
+          <div className="flex items-start gap-3 pr-8">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="font-semibold">{broadcast.message}</p>
+              <p className="mt-0.5 text-[11px] opacity-90">
+                {new Date(broadcast.timestamp).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={dismissBroadcast}
+            className="absolute right-2 top-2 rounded p-1 text-white/80 hover:bg-white/20 hover:text-white"
+            aria-label="Close broadcast"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Two-column layout: emergency form on the left, location & visual assessment on the right.
           Stacks vertically on mobile, side-by-side from lg upwards; columns stretch to equal height. */}
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
@@ -319,6 +470,14 @@ export default function RegisterCasePage() {
                 {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
               </span>
             </div>
+            {/* Named place extracted by Muhafiz from the chat — kept as the
+                case label when GPS coordinates were not available. */}
+            {locationLabel && (
+              <p className="mb-3 flex items-center gap-1.5 rounded-lg border border-secondary/30 bg-secondary/10 px-2.5 py-1.5 text-xs font-medium text-secondary">
+                <MapPin size={12} className="shrink-0" />
+                <span className="min-w-0 truncate">{locationLabel}</span>
+              </p>
+            )}
             <Button
               type="button"
               variant="secondary"
@@ -340,6 +499,9 @@ export default function RegisterCasePage() {
             />
             {geoStatus === 'success' && (
               <p className="mt-1.5 text-xs font-medium text-success">{t('registerCase.locationCaptured')}</p>
+            )}
+            {geoStatus === 'geocoded' && (
+              <p className="mt-1.5 text-xs font-medium text-success">{t('registerCase.locationGeocoded')}</p>
             )}
             {geoStatus === 'error' && (
               <p className="mt-1.5 text-xs text-accent">{t('registerCase.locationError')}</p>
@@ -568,9 +730,6 @@ export default function RegisterCasePage() {
           </div>
         </div>
       </div>
-
-      {/* Floating AI assistant — only available inside the Register Your Case module */}
-      <ChatWidget context={chatContext} />
     </AuthShell>
   )
 }
