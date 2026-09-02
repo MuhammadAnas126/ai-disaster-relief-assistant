@@ -34,3 +34,8 @@ async def emit_incident_new(incident: dict) -> None:
 async def emit_incident_updated(incident: dict) -> None:
     """Broadcast an incident update (status change) to dashboards."""
     await sio.emit("incident:updated", incident)
+
+
+async def emit_incident_deleted(incident_id: str) -> None:
+    """Broadcast a deleted incident id so dashboards drop the case everywhere."""
+    await sio.emit("incident:deleted", {"id": incident_id})

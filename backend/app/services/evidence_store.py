@@ -172,6 +172,18 @@ async def link_to_case(case_id: str, evidence_ids: list[str]) -> list[str]:
     return linked
 
 
+async def unlink_from_case(case_id: str) -> list[str]:
+    """Detach evidence from a deleted case so the gallery keeps no dangling ids."""
+    unlinked = []
+    for e in _evidence:
+        if e.get("caseId") == case_id:
+            e["caseId"] = None
+            unlinked.append(e["id"])
+    if unlinked:
+        await sio.emit("evidence:updated", {"caseId": None, "evidenceIds": unlinked})
+    return unlinked
+
+
 def aggregate() -> dict:
     """
     Compact stats over evidence submissions (per-submission view; triage_store

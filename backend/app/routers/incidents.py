@@ -2,12 +2,13 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
+from app.routers.auth import _get_current_user
 from app.services import evidence_store
-from app.services.realtime import emit_incident_new, emit_incident_updated
+from app.services.realtime import emit_incident_new, emit_incident_updated, emit_incident_deleted
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +96,27 @@ async def update_incident(incident_id: str, body: IncidentUpdate):
     _incidents[incident_id]["status"] = body.status
     await emit_incident_updated(_incidents[incident_id])
     return _incidents[incident_id]
+
+
+@router.delete("/{incident_id}")
+async def delete_incident(incident_id: str, user: dict = Depends(_get_current_user)):
+    """
+    Delete an incident case (admin action). Requires an authenticated
+    session — unauthenticated callers get a 401 before anything is removed.
+    """
+    if incident_id not in _incidents:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    _incidents.pop(incident_id)
+    # Detach any evidence linked to the case so the gallery shows no dangling ids.
+    unlinked = await evidence_store.unlink_from_case(incident_id)
+    logger.info(
+        "Incident %s deleted by %s (evidence unlinked: %d)",
+        incident_id, user.get("email"), len(unlinked),
+    )
+    # Push the deletion to dashboards so the map, response list, and admin
+    # views drop the case without waiting for the next poll.
+    await emit_incident_deleted(incident_id)
+    return {"id": incident_id, "status": "deleted"}
 
 
 @router.post("/analyze")
