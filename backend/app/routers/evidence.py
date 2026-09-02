@@ -17,12 +17,14 @@ import base64
 import json
 import logging
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from typing import Optional
 
+from app.routers.auth import _get_current_user
 from app.services import triage_store
 from app.services.ai_service import ai_service
 from app.services import evidence_store
+from app.services.realtime import emit_evidence_deleted
 
 logger = logging.getLogger(__name__)
 
@@ -124,3 +126,14 @@ async def get_evidence(evidence_id: str):
     if record is None:
         raise HTTPException(status_code=404, detail="Evidence not found")
     return record
+
+
+@router.delete("/{evidence_id}")
+async def delete_evidence(evidence_id: str, user: dict = Depends(_get_current_user)):
+    """Delete one evidence submission and its media files (admin action)."""
+    record = evidence_store.delete_evidence(evidence_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+    await emit_evidence_deleted(evidence_id)
+    logger.info("Evidence %s deleted by %s", evidence_id, user.get("email"))
+    return {"id": evidence_id, "status": "deleted"}

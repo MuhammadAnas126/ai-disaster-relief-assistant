@@ -148,6 +148,33 @@ async def record(
     return record_dict
 
 
+def _delete_media_file(url: str | None) -> None:
+    """Remove one persisted media file from disk; failures are logged, not raised."""
+    if not url:
+        return
+    relative = url.lstrip("/")
+    if relative.startswith("media/"):
+        relative = relative[len("media/"):]
+    path = os.path.join(MEDIA_ROOT, relative)
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except OSError as err:
+        logger.warning("Could not delete evidence file %s: %s", path, err)
+
+
+def delete_evidence(evidence_id: str) -> dict | None:
+    """Remove one evidence record and its persisted media files."""
+    for i, e in enumerate(_evidence):
+        if e["id"] == evidence_id:
+            record = _evidence.pop(i)
+            _delete_media_file(record.get("mediaUrl"))
+            _delete_media_file(record.get("thumbnailUrl"))
+            logger.info("Evidence %s removed from store", evidence_id)
+            return record
+    return None
+
+
 def list_evidence() -> list[dict]:
     """Return all evidence records, newest first."""
     return sorted(_evidence, key=lambda e: e["receivedAt"], reverse=True)

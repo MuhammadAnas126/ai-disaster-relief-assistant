@@ -39,3 +39,8 @@ async def emit_incident_updated(incident: dict) -> None:
 async def emit_incident_deleted(incident_id: str) -> None:
     """Broadcast a deleted incident id so dashboards drop the case everywhere."""
     await sio.emit("incident:deleted", {"id": incident_id})
+
+
+async def emit_evidence_deleted(evidence_id: str) -> None:
+    """Broadcast a deleted evidence id so the Live Share gallery removes the tile."""
+    await sio.emit("evidence:deleted", {"id": evidence_id})
