@@ -8,7 +8,6 @@ import type {
   EvidenceRecord,
   Incident,
   IncidentAnalysis,
-  PendingUser,
   User,
 } from '../types'
 
@@ -215,28 +214,6 @@ export const alertsApi = {
           sentAt: new Date().toISOString(),
           sentBy: 'You',
         }
-      },
-    ),
-}
-
-// ---------- Admin ----------
-
-export const adminApi = {
-  pendingUsers: () =>
-    withFallback<PendingUser[]>(
-      () => request('/admin/pending-users'),
-      async () => {
-        await delay()
-        return []
-      },
-    ),
-
-  approveUser: (id: string) =>
-    withFallback<{ id: string; status: 'approved' }>(
-      () => request(`/admin/users/${id}/approve`, { method: 'PATCH' }),
-      async () => {
-        await delay(300)
-        return { id, status: 'approved' }
       },
     ),
 }

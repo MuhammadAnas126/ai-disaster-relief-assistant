@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import monitor, chatbot, livestream, auth, incidents, checkins, alerts, admin, admin_assistant, evidence
+from app.routers import monitor, chatbot, livestream, auth, incidents, checkins, alerts, admin_assistant, evidence
 from app.services.realtime import sio
 from app.services.evidence_store import MEDIA_ROOT
 
@@ -39,7 +39,6 @@ fastapi_app.include_router(livestream.router, prefix="/api/livestream", tags=["L
 fastapi_app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents"])
 fastapi_app.include_router(checkins.router, prefix="/api/check-ins", tags=["Check-ins"])
 fastapi_app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
-fastapi_app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 fastapi_app.include_router(admin_assistant.router, prefix="/api/admin-assistant", tags=["Admin Assistant"])
 fastapi_app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
 

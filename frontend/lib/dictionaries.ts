@@ -213,15 +213,6 @@ const en = {
   'assistant.sendBroadcast': 'Send broadcast',
   'assistant.broadcastSent': 'Broadcast sent.',
 
-  // ----- Admin -----
-  'admin.title': 'Pending organization accounts',
-  'admin.organization': 'Organization',
-  'admin.role': 'Role',
-  'admin.requested': 'Requested',
-  'admin.approve': 'Approve',
-  'admin.empty': 'No pending accounts',
-  'admin.emptyHint': 'New organization sign-ups awaiting review will appear here.',
-
   // ----- Chat widget -----
   'chat.title': 'Muhafiz',
   'chat.subtitle': 'Survival & emergency guidance',
@@ -452,15 +443,6 @@ const ur: Record<keyof typeof en, string> = {
   'assistant.messagePlaceholder': 'الرٹ لکھیں…',
   'assistant.sendBroadcast': 'نشری الرٹ بھیجیں',
   'assistant.broadcastSent': 'نشری الرٹ بھیج دیا گیا۔',
-
-  // ----- Admin -----
-  'admin.title': 'منظوری کے انتظار میں تنظیمی اکاؤنٹس',
-  'admin.organization': 'تنظیم',
-  'admin.role': 'کردار',
-  'admin.requested': 'درخواست کا وقت',
-  'admin.approve': 'منظور کریں',
-  'admin.empty': 'کوئی زیرِ التوا اکاؤنٹ نہیں',
-  'admin.emptyHint': 'جائزے کے انتظار میں نئی تنظیمی رکنیت یہاں نظر آئے گی۔',
 
   // ----- Chat widget -----
   'chat.title': 'محافظ',

@@ -83,15 +83,6 @@ export interface AdminAssistantReply {
   broadcast: BroadcastDraft | null
 }
 
-export interface PendingUser {
-  id: string
-  fullName: string
-  email: string
-  organizationName?: string
-  role: UserRole
-  requestedAt: string
-}
-
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
