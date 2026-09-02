@@ -30,3 +30,11 @@ export function useUpdateIncidentStatus() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: incidentsKey }),
   })
 }
+
+export function useDeleteIncident() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: incidentsApi.delete,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: incidentsKey }),
+  })
+}

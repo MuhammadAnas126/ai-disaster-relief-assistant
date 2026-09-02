@@ -23,6 +23,7 @@ export function useLiveUpdates() {
 
     const onIncidentNew = () => queryClient.invalidateQueries({ queryKey: incidentsKey })
     const onIncidentUpdated = () => queryClient.invalidateQueries({ queryKey: incidentsKey })
+    const onIncidentDeleted = () => queryClient.invalidateQueries({ queryKey: incidentsKey })
     const onAlertNew = () => queryClient.invalidateQueries({ queryKey: alertsKey })
     const onCheckinUpdated = () => queryClient.invalidateQueries({ queryKey: checkInsKey })
     const onEvidenceNew = () => queryClient.invalidateQueries({ queryKey: evidenceKey })
@@ -30,6 +31,7 @@ export function useLiveUpdates() {
 
     socket.on('incident:new', onIncidentNew)
     socket.on('incident:updated', onIncidentUpdated)
+    socket.on('incident:deleted', onIncidentDeleted)
     socket.on('alert:new', onAlertNew)
     socket.on('checkin:updated', onCheckinUpdated)
     socket.on('evidence:new', onEvidenceNew)
@@ -38,6 +40,7 @@ export function useLiveUpdates() {
     return () => {
       socket.off('incident:new', onIncidentNew)
       socket.off('incident:updated', onIncidentUpdated)
+      socket.off('incident:deleted', onIncidentDeleted)
       socket.off('alert:new', onAlertNew)
       socket.off('checkin:updated', onCheckinUpdated)
       socket.off('evidence:new', onEvidenceNew)

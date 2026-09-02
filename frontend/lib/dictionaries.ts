@@ -193,6 +193,10 @@ const en = {
   'responseList.notFound': 'Incident not found',
   'responseList.notFoundHint': 'It may have been resolved or removed.',
   'responseList.emptyHint': 'New reports from the field will be ranked here automatically.',
+  'responseList.reported': 'Reported',
+  'responseList.delete': 'Delete',
+  'responseList.deleting': 'Deleting…',
+  'responseList.deleteFailed': "Couldn't delete the case. Check your connection and try again.",
 
   // ----- Assistant -----
   'assistant.title': 'Muhafiz AI Assistant',
@@ -424,6 +428,10 @@ const ur: Record<keyof typeof en, string> = {
   'responseList.notFound': 'واقعہ نہیں ملا',
   'responseList.notFoundHint': 'ممکن ہے یہ حل ہو گیا ہو یا ہٹا دیا گیا ہو۔',
   'responseList.emptyHint': 'فیلڈ کی نئی رپورٹس خودکار طور پر یہاں ترتیب دی جائیں گی۔',
+  'responseList.reported': 'رپورٹ کا وقت',
+  'responseList.delete': 'حذف کریں',
+  'responseList.deleting': 'حذف ہو رہا ہے…',
+  'responseList.deleteFailed': 'کیس حذف نہیں ہو سکا۔ اپنا کنکشن چیک کر کے دوبارہ کوشش کریں۔',
 
   // ----- Assistant -----
   'assistant.title': 'محافظ اے آئی اسسٹنٹ',

@@ -2,14 +2,15 @@
 
 import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Crosshair, X } from 'lucide-react'
+import { Crosshair, Trash2, X } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { Table, Thead, Th, Tr, Td } from '../../../components/ui/Table'
 import { EmptyState, ErrorState, Skeleton, TableSkeleton } from '../../../components/ui/States'
-import { useIncidents } from '../../../hooks/useIncidents'
+import { useDeleteIncident, useIncidents } from '../../../hooks/useIncidents'
 import { useLanguage } from '../../../lib/i18n'
+import { formatDateTime } from '../../../lib/utils'
 import type { TranslationKey } from '../../../lib/dictionaries'
 import type { DamageLevel, Incident, TrappedStatus } from '../../../types'
 
@@ -47,6 +48,7 @@ function ResponseListContent() {
   const searchParams = useSearchParams()
   const filterIncidentId = searchParams.get('incident')
   const { data, isLoading, isError } = useIncidents()
+  const deleteIncident = useDeleteIncident()
   const { t } = useLanguage()
 
   const allSorted = [...(data ?? [])].sort((a, b) => b.severityScore - a.severityScore)
@@ -82,8 +84,14 @@ function ResponseListContent() {
         )}
       </div>
 
+      {deleteIncident.isError && (
+        <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-3.5 py-3 text-sm text-accent">
+          {t('responseList.deleteFailed')}
+        </div>
+      )}
+
       {isLoading ? (
-        <TableSkeleton rows={5} cols={7} />
+        <TableSkeleton rows={5} cols={9} />
       ) : isError ? (
         <ErrorState />
       ) : sorted.length > 0 ? (
@@ -92,48 +100,66 @@ function ResponseListContent() {
             <Tr>
               <Th>#</Th>
               <Th>{t('responseList.incident')}</Th>
+              <Th>{t('responseList.reported')}</Th>
               <Th>{t('responseList.affected')}</Th>
               <Th>{t('responseList.trapped')}</Th>
               <Th>{t('responseList.damage')}</Th>
               <Th>{t('responseList.score')}</Th>
               <Th>{t('common.location')}</Th>
+              <Th></Th>
             </Tr>
           </Thead>
           <tbody>
-            {sorted.map((incident, i) => (
-              <Tr key={incident.id}>
-                <Td className="text-text-muted">{i + 1}</Td>
-                <Td>
-                  <div className="font-medium">{incident.title}</div>
-                  <div className="text-xs text-text-muted">{incident.location.label}</div>
-                </Td>
-                <Td>{incident.peopleAffected}</Td>
-                <Td>
-                  <Badge tone={TRAPPED_TONE[incident.trapped]}>{t(TRAPPED_LABEL_KEY[incident.trapped])}</Badge>
-                </Td>
-                <Td className="text-text-muted">{t(DAMAGE_LABEL_KEY[incident.structuralDamage])}</Td>
-                <Td>
-                  <span className={`text-lg font-bold ${SEVERITY_TEXT[incident.severityLevel]}`}>
-                    {incident.severityScore}
-                  </span>
-                </Td>
-                <Td>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="font-mono text-xs text-text-muted">
-                      {incident.location.lat.toFixed(4)}, {incident.location.lng.toFixed(4)}
+            {sorted.map((incident, i) => {
+              const isDeleting = deleteIncident.isPending && deleteIncident.variables === incident.id
+              return (
+                <Tr key={incident.id}>
+                  <Td className="text-text-muted">{i + 1}</Td>
+                  <Td>
+                    <div className="font-medium">{incident.title}</div>
+                    <div className="text-xs text-text-muted">{incident.location.label}</div>
+                  </Td>
+                  <Td className="whitespace-nowrap text-text-muted">{formatDateTime(incident.reportedAt)}</Td>
+                  <Td>{incident.peopleAffected}</Td>
+                  <Td>
+                    <Badge tone={TRAPPED_TONE[incident.trapped]}>{t(TRAPPED_LABEL_KEY[incident.trapped])}</Badge>
+                  </Td>
+                  <Td className="text-text-muted">{t(DAMAGE_LABEL_KEY[incident.structuralDamage])}</Td>
+                  <Td>
+                    <span className={`text-lg font-bold ${SEVERITY_TEXT[incident.severityLevel]}`}>
+                      {incident.severityScore}
                     </span>
+                  </Td>
+                  <Td>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="font-mono text-xs text-text-muted">
+                        {incident.location.lat.toFixed(4)}, {incident.location.lng.toFixed(4)}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="px-2.5 py-1 text-xs"
+                        onClick={() => viewOnMap(incident.id)}
+                      >
+                        <Crosshair size={13} /> {t('responseList.getLocation')}
+                      </Button>
+                    </div>
+                  </Td>
+                  <Td>
                     <Button
                       type="button"
                       variant="secondary"
-                      className="px-2.5 py-1 text-xs"
-                      onClick={() => viewOnMap(incident.id)}
+                      className="px-2.5 py-1 text-xs text-accent hover:border-accent/40"
+                      onClick={() => deleteIncident.mutate(incident.id)}
+                      disabled={deleteIncident.isPending}
                     >
-                      <Crosshair size={13} /> {t('responseList.getLocation')}
+                      <Trash2 size={13} />
+                      {isDeleting ? t('responseList.deleting') : t('responseList.delete')}
                     </Button>
-                  </div>
-                </Td>
-              </Tr>
-            ))}
+                  </Td>
+                </Tr>
+              )
+            })}
           </tbody>
         </Table>
       ) : filterIncidentId ? (

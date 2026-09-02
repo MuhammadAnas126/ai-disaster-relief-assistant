@@ -175,6 +175,15 @@ export const incidentsApi = {
         throw new Error('Backend not connected — status updates require the live API.')
       },
     ),
+
+  delete: (id: string) =>
+    withFallback<{ id: string; status: 'deleted' }>(
+      () => request(`/incidents/${id}`, { method: 'DELETE' }),
+      async () => {
+        await delay(200)
+        throw new Error('Backend not connected — deleting cases requires the live API.')
+      },
+    ),
 }
 
 // ---------- Check-ins ----------

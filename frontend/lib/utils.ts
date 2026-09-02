@@ -19,3 +19,18 @@ export function timeAgo(iso: string, language: Language = 'en'): string {
   const days = Math.floor(hours / 24)
   return t('time.daysAgo', days)
 }
+
+/**
+ * Full, human-readable timestamp for tables — e.g. "Tue, Oct 24, 2023, 10:30 AM".
+ * Pairs with timeAgo() when a column wants both precision and context.
+ */
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
