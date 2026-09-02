@@ -72,9 +72,11 @@ def _parse_json_block(raw_text: str) -> dict:
 
 def _build_chat_system_prompt(context: dict | None = None) -> str:
     """
-    System prompt for the disaster relief chatbot. Tuned for high-stress use:
-    calm tone, short plain-text replies, bilingual, hard safety guardrails,
-    and personalization from the user's submitted case context.
+    System prompt for the disaster relief chatbot. Tuned for high-stress use
+    and built around Muhafiz's four core workflows — instant survival &
+    first-aid, guided SOS case filing, emergency hotline guidance, and
+    bilingual EN/UR support — with hard safety guardrails and personalization
+    from the user's submitted case context.
     """
     context_block = "No case details have been submitted yet."
     if context:
@@ -94,8 +96,59 @@ def _build_chat_system_prompt(context: dict | None = None) -> str:
 
     prompt = (
         "You are Muhafiz, a disaster relief assistant for people affected by "
-        "floods, earthquakes, building collapses, and other emergencies in "
-        "Pakistan. You talk to victims, their families, and relief workers.\n\n"
+        "floods, earthquakes, building collapses, fires, and other emergencies "
+        "in Pakistan. You talk to victims, their families, and relief workers.\n\n"
+        "YOUR FOUR CORE WORKFLOWS\n"
+        "1. INSTANT SURVIVAL & FIRST-AID. When the user describes a high-stress "
+        "scenario — flash flood, earthquake, fire, building collapse, severe "
+        "bleeding, someone not breathing — lead with exactly 3-4 short, "
+        "actionable steps (flash flood safety, basic CPR steps, drop-cover-"
+        "hold for earthquakes, firm pressure for severe bleeding). Start each "
+        "step with a verb. No long preamble before the steps.\n"
+        "2. GUIDED SOS CASE FILING. Let the user describe their emergency in "
+        "plain text. Whenever they express an urgent need for rescue or help, "
+        "write your normal user-facing reply FIRST (acknowledgment, steps, or "
+        "hotlines — the same kind you always give), and then append one final "
+        "line in EXACTLY this format (it powers a 1-tap SOS button that "
+        "pre-fills the case form). NEVER reply with only the marker line — "
+        "the marker is invisible to the user, so a reply without text before "
+        "it shows as a blank message:\n"
+        "SOS_OFFER: {\"description\": \"<one-line situation summary>\", "
+        "\"location\": \"<place name>\", \"peopleAffected\": <number or null>, "
+        "\"trapped\": \"yes|partial|no\"}\n"
+        "Extraction rules — fill every field from what the user actually said:\n"
+        "- description: one line covering the hazard, place, and people "
+        "involved, written in the SAME language the user wrote in (English "
+        "or Urdu — never translate it).\n"
+        "- location: the address the user stated, copied as completely as "
+        "they gave it — city, area, landmark, and house or street number "
+        "all together (\"I am in Karachi\", \"I'm trapped in a house in "
+        "Lahore near Model Town house no 1130\" → \"house no 1130 near "
+        "Model Town, Lahore\", \"میں کراچی میں ہوں\") — an empty string "
+        "when they named none. Never drop the house or street number: the "
+        "address is pinned onto the map, and rescuers use it.\n"
+        "- peopleAffected: the count they mentioned (\"5 people are trapped\", "
+        "\"5 لوگ پھنسے ہوئے ہیں\") — null when they mentioned none.\n"
+        "- trapped: \"yes\" when people are stuck or trapped, \"partial\" when "
+        "partially stuck or unclear, \"no\" otherwise.\n"
+        "- Emit the JSON on a single line, no markdown fences, and include "
+        "every field even when empty.\n"
+        "When trapped is yes or partial, also ask one short follow-up "
+        "question about who is trapped and where exactly; if their location "
+        "is vague, ask for the nearest landmark or house number — the answer "
+        "refines the next SOS_OFFER.\n"
+        "Offer it even when you have just given first-aid steps, but never "
+        "for general questions (hotlines, preparedness, supplies).\n"
+        "3. EMERGENCY HOTLINE GUIDANCE. When asked for emergency numbers or "
+        "rescue protocols, share these verified helplines for Pakistan: "
+        "Rescue 1122 (national emergency: ambulance, rescue, fire), Edhi "
+        "Ambulance 115, Fire Brigade 16, Police 15. Tell the caller to state "
+        "their location first. These are the only numbers you may share.\n"
+        "4. BILINGUAL SUPPORT (EN/UR). Detect the language of every message. "
+        "If the user writes in Urdu script (e.g. \"مدد چاہیے\", \"پانی بڑھ رہا "
+        "ہے\") or Roman Urdu, reply fully in Urdu immediately — never ask "
+        "which language they prefer, never offer a language menu, and never "
+        "switch languages unless the user does.\n\n"
         "VOICE AND TONE\n"
         "- Calm, warm, and reassuring. Never alarmist.\n"
         "- Short sentences. Keep replies under 120 words.\n"
@@ -103,13 +156,10 @@ def _build_chat_system_prompt(context: dict | None = None) -> str:
         "chat renders raw text.\n"
         "- If the user sounds scared or hurt, open with one short line of "
         "acknowledgment before any advice.\n\n"
-        "LANGUAGE\n"
-        "- Reply in the language the user writes in: English or Urdu. "
-        "Roman Urdu is also fine.\n\n"
         "HOW TO ANSWER\n"
         "- Lead with the most important action.\n"
-        "- Use simple numbered steps (1. 2. 3.) when giving several "
-        "instructions.\n"
+        "- Use simple numbered steps (1. 2. 3.) or short dash bullets when "
+        "giving several instructions.\n"
         "- Cover: shelter, basic first aid, evacuation, water and food safety, "
         "staying visible to rescuers, and emotional support.\n\n"
         "SAFETY RULES (never break these)\n"
@@ -125,7 +175,8 @@ def _build_chat_system_prompt(context: dict | None = None) -> str:
         "the way or that you have contacted anyone.\n"
         "- If you lack specific local information (shelter addresses, road "
         "status, active alerts), say so clearly and give general safe guidance "
-        "instead. Never invent shelters, routes, or phone numbers.\n\n"
+        "instead. Never invent shelters, routes, or phone numbers — the only "
+        "numbers you may share are the verified helplines listed above.\n\n"
         f"USER CONTEXT (from their emergency report, if any)\n{context_block}\n\n"
         "Personalize your answers with this context: floods mean water safety "
         "and higher ground first; trapped people mean noise at intervals, dust "
@@ -140,6 +191,91 @@ def _build_chat_system_prompt(context: dict | None = None) -> str:
         )
 
     return prompt
+
+
+# Marker line the chat model appends when a user needs rescue. It is parsed
+# out of the visible reply and returned separately so the frontend can render
+# its 1-tap SOS action card with the extracted case fields.
+_SOS_OFFER_RE = re.compile(r"SOS_OFFER:\s*(.+)", re.DOTALL)
+
+
+def _extract_sos_offer(reply_text: str) -> tuple[str, dict | None]:
+    """
+    Split an "SOS_OFFER: {json}" marker line out of a chat reply, leaving clean
+    prose for the chat bubble and the raw extracted case fields. Returns a
+    minimal {"description": ...} payload when the model wrote plain text
+    instead of JSON, so a malformed offer still pre-fills the form.
+    """
+    match = _SOS_OFFER_RE.search(reply_text)
+    if not match:
+        return reply_text, None
+
+    raw_payload = match.group(1).strip()
+    cleaned = (reply_text[:match.start()] + reply_text[match.end():]).strip()
+    # Tidy the whitespace the removed marker line leaves behind.
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+
+    parsed = _parse_json_block(raw_payload)
+    if parsed.get("parse_error"):
+        # Model wrote plain text or broken JSON instead of the contract —
+        # salvage a description so the SOS card still pre-fills the form.
+        desc_match = re.search(r'"description"\s*:\s*"([^"]+)"', raw_payload)
+        fallback = (desc_match.group(1) if desc_match else raw_payload).strip("`").strip()
+        if fallback:
+            return cleaned, {"description": fallback}
+        return cleaned, None
+    return cleaned, parsed
+
+
+# "lat, lng" pairs reported in the case context (e.g. "24.8607, 67.0011").
+_COORDS_RE = re.compile(
+    r"\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*"
+)
+
+
+def _build_sos_prefill(data: dict, context: dict | None) -> dict | None:
+    """
+    Normalize the model's SOS_OFFER fields into a prefill the Register Your
+    Case form can trust: a required one-line description (in the user's own
+    language), an optional place name, people count, and trapped status. GPS
+    coordinates ride along when the case context carries them; otherwise the
+    named location is kept as the label.
+    """
+    description = str(data.get("description") or "").strip()
+    if not description:
+        return None
+
+    prefill: dict = {"description": description}
+
+    location = str(data.get("location") or "").strip()
+    if location:
+        prefill["location"] = location
+
+    people = data.get("peopleAffected")
+    if isinstance(people, bool):
+        people = None
+    elif isinstance(people, str):
+        digits = re.search(r"\d+", people)
+        people = int(digits.group(0)) if digits else None
+    elif isinstance(people, float):
+        people = int(people)
+    if isinstance(people, int) and people >= 0:
+        prefill["peopleAffected"] = people
+
+    trapped = str(data.get("trapped") or "").strip().lower()
+    if trapped in ("yes", "partial", "no"):
+        prefill["trapped"] = trapped
+
+    # Context coordinates win over a named place for the map pin — the place
+    # name still travels as the human-readable label.
+    if context and context.get("location"):
+        coords = _COORDS_RE.fullmatch(str(context["location"]))
+        if coords:
+            prefill["lat"] = float(coords.group(1))
+            prefill["lng"] = float(coords.group(2))
+
+    return prefill
 
 
 def _build_admin_system_prompt(snapshot: dict, context: dict | None = None) -> str:
@@ -291,7 +427,12 @@ class AIService:
         Conversational Qwen-Max chatbot for disaster relief assistance.
         Accepts a message, optional conversation history, and optional context
         from the user's submitted emergency case (disaster type, location,
-        trapped status) so guidance can be personalized.
+        trapped status) so guidance can be personalized. When the model flags
+        an urgent rescue need it appends an "SOS_OFFER:" JSON line — extracted
+        and normalized here into a description / location / peopleAffected /
+        trapped prefill (plus context GPS coordinates when available) and
+        returned as "sos" so the frontend can render its 1-tap SOS action
+        card.
         """
         system_prompt = _build_chat_system_prompt(context)
 
@@ -312,7 +453,9 @@ class AIService:
 
             if response.status_code == 200:
                 reply_text = response.output.choices[0].message.content
-                return {"success": True, "reply": reply_text}
+                reply_text, sos_data = _extract_sos_offer(reply_text)
+                sos = _build_sos_prefill(sos_data, context) if sos_data else None
+                return {"success": True, "reply": reply_text, "sos": sos}
             else:
                 return {"success": False, "error": response.message}
 

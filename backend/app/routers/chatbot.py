@@ -1,5 +1,6 @@
 # app/routers/chatbot.py
 import logging
+from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.ai_service import ai_service
@@ -15,8 +16,26 @@ class ChatRequest(BaseModel):
     context: dict | None = None
 
 
+class SosPrefill(BaseModel):
+    """
+    Case fields extracted from the conversation when the user needs rescue.
+    Powers the frontend's 1-tap SOS action card: description in the user's
+    own language, an optional named place, people count, trapped status, and
+    GPS coordinates when the case context carried them.
+    """
+    description: str
+    location: str | None = None
+    peopleAffected: int | None = None
+    trapped: Literal["yes", "partial", "no"] | None = None
+    lat: float | None = None
+    lng: float | None = None
+
+
 class ChatResponse(BaseModel):
     reply: str
+    # Extracted SOS prefill set when the user needs rescue — routes to the
+    # Register Your Case form with pre-filled inputs.
+    sos: SosPrefill | None = None
 
 
 # Signals that a conversation may involve a life-threatening situation.
@@ -27,6 +46,9 @@ CRISIS_SIGNALS = (
     "unconscious", "bleeding heavily", "severe bleeding",
     "drowning", "heart attack", "stroke",
     "suicide", "خودکشی",
+    # Distress calls in Urdu script and Roman Urdu — voice input produces
+    # these transcripts verbatim.
+    "مدد", "madad", "bachao", "بچاؤ",
 )
 
 
@@ -55,6 +77,9 @@ async def chat_message(body: ChatRequest):
     Send a message to the Qwen-Max-powered disaster relief chatbot.
     Pass conversation history for multi-turn context, and optional case
     context (situation, location, trapped status) for personalized guidance.
+    When the user urgently needs rescue, the reply carries an "sos" prefill
+    (description, location, peopleAffected, trapped) the frontend renders as
+    a 1-tap SOS action card.
     """
     if not body.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
@@ -65,7 +90,7 @@ async def chat_message(body: ChatRequest):
         result = await ai_service.chat(body.message, body.history, body.context)
 
         if result.get("success"):
-            return ChatResponse(reply=result["reply"])
+            return ChatResponse(reply=result["reply"], sos=result.get("sos"))
         else:
             logger.error("Chatbot AI call failed: %s", result.get("error"))
             return ChatResponse(
