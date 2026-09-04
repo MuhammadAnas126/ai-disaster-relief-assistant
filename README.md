@@ -1,8 +1,8 @@
-# Sentinel AI Disaster Relief Assistant
+# AI Disaster Relief Assistant
 
 ## Description
 
-Sentinel AI is a disaster-relief platform that helps victims report emergencies and enables responders to monitor incidents, evidence, alerts, and live updates.
+This AI is a disaster-relief platform that helps victims report emergencies and enables responders to monitor incidents, evidence, alerts, and live updates.
 
 ## Features
 
