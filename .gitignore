@@ -50,3 +50,8 @@ __pycache__/
 # Misc
 *.pem
 coverage/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3

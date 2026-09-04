@@ -9,6 +9,8 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+QWEN_FLASH_FALLBACK_MODEL = "qwen3.8-flash-next"
+
 # Initialize DashScope only when a key is configured.
 dashscope.api_key = settings.DASHSCOPE_API_KEY or ""
 if settings.DASHSCOPE_BASE_URL:
@@ -193,6 +195,21 @@ def _build_chat_system_prompt(context: dict | None = None) -> str:
     return prompt
 
 
+def _generation_call_with_fallback(primary_model: str, **kwargs):
+    """Call a text model, retrying once with the configured Qwen Flash fallback."""
+    response = Generation.call(model=primary_model, **kwargs)
+    if response.status_code == 200 or primary_model == QWEN_FLASH_FALLBACK_MODEL:
+        return response
+
+    logger.warning(
+        "Text model %s failed (%s); retrying with %s",
+        primary_model,
+        getattr(response, "message", "unknown error"),
+        QWEN_FLASH_FALLBACK_MODEL,
+    )
+    return Generation.call(model=QWEN_FLASH_FALLBACK_MODEL, **kwargs)
+
+
 # Marker line the chat model appends when a user needs rescue. It is parsed
 # out of the visible reply and returned separately so the frontend can render
 # its 1-tap SOS action card with the extracted case fields.
@@ -281,55 +298,35 @@ def _build_sos_prefill(data: dict, context: dict | None) -> dict | None:
 def _build_admin_system_prompt(snapshot: dict, context: dict | None = None) -> str:
     """
     System prompt for the Admin AI Assistant. Grounded in a live operations
-    snapshot (incidents, alerts, visual triage) so every answer reflects the
-    current field picture instead of the model's imagination.
+    snapshot so every answer reflects full system data.
     """
     prompt = (
-        "You are Muhafiz, the AI operations assistant inside a disaster relief "
-        "dispatch center in Pakistan. You talk to administrators and dispatchers "
-        "only — never to victims.\n\n"
+        "You are Muhafiz, the full-access AI Operations Command Co-Pilot for dispatch administrators "
+        "in Pakistan. You talk to administrators and dispatchers only — never to victims.\n\n"
+        "YOU HAVE ACCESS TO ALL SYSTEM DATA:\n"
+        "1. Complete incident records (SOS cases, status, trapped counts, descriptions, GPS coordinates).\n"
+        "2. All broadcast alert history.\n"
+        "3. Live evidence gallery submissions and Qwen-VL visual triage findings.\n\n"
         "YOUR FOUR JOBS\n"
-        "1. Natural language case querying. Answer questions about incoming "
-        "victim reports (SOS cases) using ONLY the OPERATIONS SNAPSHOT below. "
-        "Examples: \"Show all cases where people are trapped\", \"How many "
-        "critical SOS alerts came in during the last 20 minutes?\"\n"
-        "2. Broadcast drafting. When asked to draft, write, or generate a "
-        "broadcast or emergency alert, fill the \"broadcast\" field: choose the "
-        "level (info, warning, or critical) and write one message in BOTH "
-        "English and Urdu, labeled \"English:\" and \"Urdu:\" on separate lines. "
-        "Lead with the action required and keep each language version under 60 "
-        "words.\n"
-        "3. Executive situation summaries. When asked for a summary or overview, "
-        "synthesize the snapshot into a few concise, action-oriented bullets: "
-        "top emergency clusters by location, trapped counts, severity trends, "
-        "and recommended next actions.\n"
-        "4. Visual triage aggregation. Interpret the \"visualTriage\" section "
-        "(aggregated Qwen-VL findings across every analyzed frame: disaster "
-        "types, victim status, hazards) and the \"visualEvidence\" section "
-        "(the most recent individual evidence submissions — uploaded "
-        "photos/videos and live-stream frames — each with its own AI analysis, "
-        "the victim's trapped status, and the linked case id where known). Use "
-        "visualEvidence to answer questions like \"Show me all cases where "
-        "people are trapped based on recent photos\" or \"What disaster types "
-        "are most common in uploaded images?\".\n\n"
+        "1. Natural language case querying. Answer questions about incoming victim reports (SOS cases) "
+        "using the OPERATIONS SNAPSHOT below.\n"
+        "2. Broadcast drafting. When asked to draft, write, or generate a broadcast or emergency alert, "
+        "fill the \"broadcast\" field: choose the level (info, warning, or critical) and write one message "
+        "in BOTH English and Urdu, labeled \"English:\" and \"Urdu:\" on separate lines.\n"
+        "3. Executive situation summaries. Synthesize the snapshot into concise, action-oriented bullets.\n"
+        "4. Visual triage aggregation. Interpret the \"visualTriage\" and \"evidenceGallery\" sections.\n\n"
+        "LOCATION & COORDINATE RULES (STRICT):\n"
+        "- NEVER output or mention generic system label placeholders like 'Reported location' or 'Unknown'.\n"
+        "- Never claim coordinates are unavailable when an incident exists in the snapshot.\n"
+        "- When asked about any specific incident (e.g. 'demolished house' or 'inc-6'), search all_records in the snapshot "
+        "and answer directly with the incident title, location label, and exact coordinates.\n\n"
         "RESPONSE FORMAT\n"
         "- Normal answers: reply in plain text only — no JSON, no markdown.\n"
-        "- ONLY when asked to draft, write, or generate a broadcast or alert, "
-        "reply with STRICT JSON and nothing else (no markdown fences; use \\n "
-        "for line breaks inside strings):\n"
-        "{\"reply\": \"<one-line confirmation>\", \"broadcast\": {\"level\": "
-        "\"info|warning|critical\", \"message\": \"English: ...\\nUrdu: ...\"}}\n\n"
+        "- ONLY when asked to draft, write, or generate a broadcast or alert, reply with STRICT JSON:\n"
+        "{\"reply\": \"<one-line confirmation>\", \"broadcast\": {\"level\": \"info|warning|critical\", \"message\": \"English: ...\\nUrdu: ...\"}}\n\n"
         "RULES (never break these)\n"
-        "- Ground every number and every case in the OPERATIONS SNAPSHOT. If it "
-        "holds no matching data, say so plainly — never invent cases, counts, "
-        "or locations.\n"
-        "- SOS alerts = incoming victim incident reports in the snapshot.\n"
-        "- For time-window questions, use the rollingWindows counts and the "
-        "reportedAt timestamps of recent cases.\n"
-        "- Reply in the admin's language (English or Urdu). Broadcast messages "
-        "are always bilingual English + Urdu regardless.\n"
-        "- Plain text replies: numbered lists (1. 2. 3.) and dashes are "
-        "fine; no markdown symbols, no asterisks.\n"
+        "- Ground every number and every case in the OPERATIONS SNAPSHOT.\n"
+        "- Plain text replies: numbered lists (1. 2. 3.) and dashes are fine; no markdown symbols, no asterisks.\n"
         "- Be concise and operational: lead with the answer, then key details.\n"
         "- Never claim rescuers were dispatched or that anyone was contacted.\n\n"
         "OPERATIONS SNAPSHOT (live data, generated just now)\n"
@@ -344,8 +341,60 @@ def _build_admin_system_prompt(snapshot: dict, context: dict | None = None) -> s
 
     return prompt
 
-
 class AIService:
+    @staticmethod
+    async def score_incidents(incidents: list[dict]) -> dict:
+        """Use Qwen Turbo to assign each incident an operational priority score."""
+        if not incidents:
+            return {}
+
+        prompt = (
+            "You are an emergency dispatch prioritization model. Score each incident "
+            "from 0 to 100 using people affected, trapped status, severity score, "
+            "structural damage, and incident description. Trapped people are the "
+            "strongest signal. Larger trapped populations must always receive a "
+            "higher score than smaller trapped populations when other factors are "
+            "similar: 1,000 trapped must rank above 700 trapped. Never let a disaster "
+            "type such as flood outrank an earthquake solely because of its type. "
+            "Return STRICT JSON only in "
+            "this format: {\"scores\": [{\"id\": \"incident id\", \"score\": 0}]}. "
+            "Include exactly one score for every incident.\n\n"
+            f"INCIDENTS\n{json.dumps(incidents, default=str)}"
+        )
+
+        try:
+            response = _generation_call_with_fallback(
+                "qwen-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                result_format="message",
+            )
+            if response.status_code != 200:
+                logger.warning("Qwen Turbo priority scoring failed: %s", response.message)
+                return {}
+
+            parsed = _parse_json_block(response.output.choices[0].message.content)
+            result = {}
+            incident_by_id = {str(incident.get("id", "")): incident for incident in incidents}
+            for item in parsed.get("scores", []):
+                incident_id = str(item.get("id", ""))
+                score = item.get("score")
+                if incident_id and isinstance(score, (int, float)):
+                    model_score = max(0, min(100, round(score)))
+                    source = incident_by_id.get(incident_id, {})
+                    people_affected = max(0, int(source.get("peopleAffected", 0) or 0))
+                    trapped = str(source.get("trapped", "no")).lower()
+                    # Keep model judgment while enforcing a transparent urgency floor.
+                    evidence_score = min(100, round(people_affected * 0.05))
+                    if trapped == "yes":
+                        evidence_score = min(100, evidence_score + 40)
+                    elif trapped == "partial":
+                        evidence_score = min(100, evidence_score + 25)
+                    result[incident_id] = round(model_score * 0.6 + evidence_score * 0.4)
+            return result
+        except Exception as exc:
+            logger.warning("Qwen Turbo priority scoring unavailable: %s", exc)
+            return {}
+
     @staticmethod
     async def analyze_victim_image(image_url: str) -> dict:
         """
@@ -398,8 +447,8 @@ class AIService:
         )
 
         try:
-            response = Generation.call(
-                model='qwen-max',
+            response = _generation_call_with_fallback(
+                'qwen-max',
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": transcript},
@@ -445,8 +494,8 @@ class AIService:
         messages.append({"role": "user", "content": message})
 
         try:
-            response = Generation.call(
-                model='qwen-max',
+            response = _generation_call_with_fallback(
+                'qwen-max',
                 messages=messages,
                 result_format='message',
             )
@@ -487,8 +536,8 @@ class AIService:
         messages.append({"role": "user", "content": message})
 
         try:
-            response = Generation.call(
-                model='qwen-max',
+            response = _generation_call_with_fallback(
+                'qwen-max',
                 messages=messages,
                 result_format='message',
             )

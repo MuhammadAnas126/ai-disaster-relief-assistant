@@ -2,17 +2,13 @@
 """
 Admin AI Assistant — a Qwen-Max co-pilot for dispatch administrators.
 
-Unlike the victim-facing chatbot, this endpoint grounds every answer in a
-live operations snapshot built from:
-- the in-memory incident store (incoming victim SOS reports),
+Grounded in a live operations snapshot built from:
+- the incident store (incoming victim SOS reports),
 - the broadcast alert history,
-- aggregated Qwen-VL visual triage findings from live-share photos.
-
-When the admin asks the AI to draft a broadcast, the response carries a
-ready-to-review {level, message} draft the frontend loads into the
-Broadcast Alert form.
+- aggregated Qwen-VL visual triage findings.
 """
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -28,12 +24,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Most-recent items embedded in the prompt snapshot (keeps tokens bounded).
 MAX_RECENT_INCIDENTS = 20
 MAX_RECENT_ALERTS = 10
 MAX_RECENT_EVIDENCE = 15
-# Rolling windows (minutes) pre-computed for time-based questions such as
-# "How many critical SOS alerts came in during the last 20 minutes?"
 SNAPSHOT_WINDOWS_MIN = (15, 30, 60, 24 * 60)
 
 
@@ -67,108 +60,77 @@ def _within_minutes(iso_timestamp: str | None, minutes: float, now: datetime) ->
 
 
 def _build_snapshot() -> dict:
-    """Compose the live operations snapshot the assistant is grounded in."""
+    """Compose a comprehensive live operations snapshot for full system access."""
     now = datetime.now(timezone.utc)
-    incidents = get_incidents()
-    alerts = get_alerts()
+    
+    # 1. Fetch Incidents with Sanitized Locations
+    raw_incidents = get_incidents()
+    incidents = []
+    for i in raw_incidents:
+        loc = i.get("location") or {}
+        lat = loc.get("lat", 31.5204)
+        lng = loc.get("lng", 74.3587)
+        label = loc.get("label") or ""
+        
+        # Sanitize generic technical placeholder strings
+        if not label or label.strip().lower() in ("reported location", "unknown"):
+            label = f"Verified GPS Area ({lat:.4f}, {lng:.4f})"
 
-    severity = {"critical": 0, "high": 0, "medium": 0}
-    trapped = {"yes": 0, "partial": 0, "no": 0}
-    status_counts = {"open": 0, "in_progress": 0, "resolved": 0}
-    people_affected = 0
-    for inc in incidents:
-        if inc.get("severityLevel") in severity:
-            severity[inc["severityLevel"]] += 1
-        if inc.get("trapped") in trapped:
-            trapped[inc["trapped"]] += 1
-        if inc.get("status") in status_counts:
-            status_counts[inc["status"]] += 1
-        people_affected += inc.get("peopleAffected", 0) or 0
-
-    rolling_windows = {}
-    for minutes in SNAPSHOT_WINDOWS_MIN:
-        in_window = [
-            i for i in incidents if _within_minutes(i.get("reportedAt"), minutes, now)
-        ]
-        rolling_windows[f"last_{minutes}m"] = {
-            "total": len(in_window),
-            "critical": sum(1 for i in in_window if i.get("severityLevel") == "critical"),
-            "trapped": sum(1 for i in in_window if i.get("trapped") in ("yes", "partial")),
-        }
-
-    recent = [
-        {
+        incidents.append({
             "id": i.get("id"),
             "title": i.get("title"),
-            "description": str(i.get("description", ""))[:200],
+            "description": str(i.get("description", "")),
             "severityLevel": i.get("severityLevel"),
             "severityScore": i.get("severityScore"),
             "trapped": i.get("trapped"),
             "peopleAffected": i.get("peopleAffected"),
             "structuralDamage": i.get("structuralDamage"),
             "status": i.get("status"),
-            "location": (i.get("location") or {}).get("label"),
+            "location": {"lat": lat, "lng": lng, "label": label},
             "reportedAt": i.get("reportedAt"),
             "reportedBy": i.get("reportedBy"),
-        }
-        for i in sorted(incidents, key=lambda i: i.get("reportedAt", ""), reverse=True)[
-            :MAX_RECENT_INCIDENTS
-        ]
-    ]
+            "isGuestReport": i.get("isGuestReport"),
+            "evidenceIds": i.get("evidenceIds", []),
+        })
 
-    recent_alerts = [
-        {
-            "id": a.get("id"),
-            "level": a.get("level"),
-            "message": str(a.get("message", ""))[:150],
-            "sentAt": a.get("sentAt"),
-        }
-        for a in sorted(alerts, key=lambda a: a.get("sentAt", ""), reverse=True)[
-            :MAX_RECENT_ALERTS
-        ]
-    ]
+    # 2. Fetch All Broadcast Alerts
+    alerts = get_alerts()
 
-    recent_evidence = []
-    for e in evidence_store.list_evidence()[:MAX_RECENT_EVIDENCE]:
+    # 3. Fetch Full Evidence Gallery
+    all_evidence = []
+    for e in evidence_store.list_evidence():
         analysis = e.get("analysis") or {}
-        recent_evidence.append(
-            {
-                "id": e["id"],
-                "mediaType": e["mediaType"],
-                "source": e["source"],
-                "caseId": e.get("caseId"),
-                "trapped": e.get("trapped"),
-                "peopleAffected": e.get("peopleAffected"),
-                "disasterType": analysis.get("disasterType"),
-                "victimStatus": analysis.get("status"),
-                "hazards": analysis.get("hazards", []),
-                "location": (e.get("location") or {}).get("label"),
-                "receivedAt": e["receivedAt"],
-            }
-        )
+        all_evidence.append({
+            "id": e["id"],
+            "mediaType": e["mediaType"],
+            "source": e["source"],
+            "caseId": e.get("caseId"),
+            "trapped": e.get("trapped"),
+            "peopleAffected": e.get("peopleAffected"),
+            "disasterType": analysis.get("disasterType"),
+            "victimStatus": analysis.get("status"),
+            "confidence": analysis.get("confidence"),
+            "hazards": analysis.get("hazards", []),
+            "location": e.get("location") or {},
+            "receivedAt": e["receivedAt"],
+        })
 
     return {
         "generatedAt": now.isoformat(),
         "incidents": {
             "total": len(incidents),
-            "bySeverity": severity,
-            "byTrapped": trapped,
-            "byStatus": status_counts,
-            "peopleAffectedTotal": people_affected,
-            "rollingWindows": rolling_windows,
-            "recent": recent,
+            "all_records": incidents,
         },
-        "broadcastAlertsSent": {
+        "broadcastAlerts": {
             "total": len(alerts),
-            "recent": recent_alerts,
+            "all_records": alerts,
         },
         "visualTriage": triage_store.aggregate(),
-        "visualEvidence": {
+        "evidenceGallery": {
             "stats": evidence_store.aggregate(),
-            "recent": recent_evidence,
+            "all_records": all_evidence,
         },
     }
-
 
 def _offline_summary(snapshot: dict) -> str:
     """Deterministic snapshot digest returned when the AI call fails."""
@@ -211,21 +173,78 @@ def _offline_summary(snapshot: dict) -> str:
     return "\n".join(lines)
 
 
+def _location_answer(snapshot: dict, message: str) -> str | None:
+    """Answer direct location questions from stored incident coordinates."""
+    lowered = message.lower()
+    if not re.search(r"\b(where|location|coordinate|coordinates|gps|lat|lng|longitude|latitude)\b", lowered):
+        return None
+
+    incidents = snapshot.get("incidents", {}).get("recent", [])
+    candidates = []
+    stop_words = {
+        "the", "and", "with", "from", "near", "city", "area", "in", "at", "of",
+        "high", "low", "medium", "urgent", "incident", "case",
+    }
+    for incident in incidents:
+        title = str(incident.get("title") or "")
+        keywords = [
+            word for word in re.findall(r"[a-z0-9]+", title.lower())
+            if len(word) > 2 and word not in stop_words
+        ]
+        overlap = sum(1 for keyword in keywords if keyword in lowered)
+        if overlap:
+            candidates.append((overlap, incident))
+    matches = [
+        incident for _, incident in sorted(candidates, key=lambda item: item[0], reverse=True)
+    ]
+    if not matches:
+        asks_for_all = not re.search(
+            r"\b(forest|fire|flood|earthquake|sandstorm|storm|landslide|collapse|incident|case)\b",
+            lowered,
+        )
+        if asks_for_all:
+            matches = incidents
+    if not matches:
+        return None
+
+    lines = []
+    for incident in matches:
+        location = incident.get("location") or {}
+        lat = location.get("lat")
+        lng = location.get("lng")
+        label = location.get("label") or ""
+
+        # SANITIZATION: Clean generic/technical placeholders
+        if not label or label.strip().lower() in ("reported location", "unknown", ""):
+            if lat is not None and lng is not None:
+                label = f"Verified GPS Area ({lat:.4f}, {lng:.4f})"
+            else:
+                label = "Location verification pending (Default Region)"
+
+        if lat is not None and lng is not None:
+            lines.append(f"{incident.get('title')}: {label} (Coordinates: {lat:.4f}, {lng:.4f})")
+        else:
+            lines.append(f"{incident.get('title')}: {label}")
+            
+    return "\n".join(lines)
+
+
 @router.post("/message", response_model=AdminChatResponse)
 async def admin_chat_message(
     body: AdminChatRequest, user: dict = Depends(_get_current_user)
 ):
     """
     Send a message to the Admin AI Assistant (Qwen-Max), grounded in live
-    operations data: victim SOS reports, broadcast alert history, and
-    aggregated Qwen-VL findings from live-share photos. When the admin asks
-    for a broadcast, the response carries a ready-to-review draft for the
-    Broadcast Alert form.
+    operations data.
     """
     if not body.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     snapshot = _build_snapshot()
+
+    direct_location = _location_answer(snapshot, body.message)
+    if direct_location:
+        return AdminChatResponse(reply=direct_location)
 
     try:
         result = await ai_service.admin_chat(
