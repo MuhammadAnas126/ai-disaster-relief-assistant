@@ -64,7 +64,7 @@ export function RescueGuidanceMap({ position, safePoint, heightClassName = 'h-[3
     const mapsUrl = safePoint
       ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${safePoint.lat},${safePoint.lng}`)}&travelmode=walking`
       : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${position[0]},${position[1]}`)}`
-    window.location.assign(mapsUrl)
+    window.open(mapsUrl, '_blank', 'noopener,noreferrer')
   }
 
   return (
