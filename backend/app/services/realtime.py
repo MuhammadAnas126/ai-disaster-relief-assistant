@@ -54,3 +54,13 @@ async def emit_rescue_guidance_ready(session: dict) -> None:
 async def emit_rescue_authority_called(data: dict) -> None:
     """Broadcast that the victim has called the emergency authority."""
     await sio.emit("rescue:authority_called", data)
+
+
+async def emit_alert_new(alert: dict) -> None:
+    """Broadcast a newly created manual or automated warning."""
+    await sio.emit("alert:new", alert)
+
+
+async def emit_weather_updated(snapshot: dict) -> None:
+    """Notify dashboards that the Pakistan monitor has refreshed."""
+    await sio.emit("weather:updated", {"updatedAt": snapshot.get("updatedAt")})

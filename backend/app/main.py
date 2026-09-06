@@ -1,14 +1,16 @@
 # app/main.py
 import logging
+import asyncio
 
 import socketio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import monitor, chatbot, livestream, auth, incidents, checkins, alerts, admin_assistant, evidence, rescue
+from app.routers import monitor, chatbot, livestream, auth, incidents, checkins, alerts, admin_assistant, evidence, rescue, weather
 from app.services.realtime import sio
 from app.services.evidence_store import MEDIA_ROOT
+from app.services.weather_monitor import weather_monitor_loop
 
 # Configure logging
 logging.basicConfig(
@@ -21,6 +23,20 @@ fastapi_app = FastAPI(
     description="Real-time multimodal disaster relief monitoring system",
     version="0.1.0"
 )
+
+_weather_task: asyncio.Task | None = None
+
+
+@fastapi_app.on_event("startup")
+async def start_weather_monitor() -> None:
+    global _weather_task
+    _weather_task = asyncio.create_task(weather_monitor_loop())
+
+
+@fastapi_app.on_event("shutdown")
+async def stop_weather_monitor() -> None:
+    if _weather_task:
+        _weather_task.cancel()
 
 # CORS (frontend will typically run on a separate origin)
 fastapi_app.add_middleware(
@@ -42,6 +58,7 @@ fastapi_app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 fastapi_app.include_router(admin_assistant.router, prefix="/api/admin-assistant", tags=["Admin Assistant"])
 fastapi_app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
 fastapi_app.include_router(rescue.router, prefix="/api/rescue", tags=["Rescue"])
+fastapi_app.include_router(weather.router, prefix="/api/weather", tags=["Weather"])
 
 # Serve persisted evidence media (photos, video poster frames, stream frames)
 # so the admin Live Share gallery can preview victim submissions.

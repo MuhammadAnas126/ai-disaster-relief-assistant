@@ -72,6 +72,43 @@ export interface Alert {
   sentBy?: string
 }
 
+export interface WeatherWarning {
+  level: AlertLevel
+  type: string
+  location: string
+  message: string
+}
+
+export interface WeatherWebReport {
+  title: string
+  url: string
+  source: string
+  publishedAt: string | null
+  matchedTopics: string[]
+}
+
+export interface PakistanWeatherSnapshot {
+  country: string
+  updatedAt: string | null
+  source: string
+  status: 'starting' | 'ok' | 'error'
+  warnings: WeatherWarning[]
+  webReports: WeatherWebReport[]
+  cities: Array<{
+    name: string
+    temperatureC: number | null
+    windKmh: number | null
+    maxRainProbability: number
+    maxRainMm: number
+  }>
+  earthquakes: Array<{
+    id: string
+    magnitude: number
+    place: string
+    time: string
+  }>
+}
+
 /** AI-drafted broadcast returned by the Admin AI Assistant for review in the alert form */
 export interface BroadcastDraft {
   level: AlertLevel

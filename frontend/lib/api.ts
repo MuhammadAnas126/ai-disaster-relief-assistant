@@ -13,6 +13,7 @@ import type {
   SosPrefill,
   SafeSpotAnalysis,
   User,
+  PakistanWeatherSnapshot,
 } from "../types";
 
 export const API_BASE_URL =
@@ -274,6 +275,16 @@ export const alertsApi = {
         };
       },
     ),
+};
+
+// ---------- Pakistan weather monitoring ----------
+
+export const weatherApi = {
+  pakistan: () => request<PakistanWeatherSnapshot>("/weather/pakistan"),
+  refreshPakistan: () =>
+    request<PakistanWeatherSnapshot>("/weather/pakistan/refresh", {
+      method: "POST",
+    }),
 };
 
 // ---------- Evidence submissions (unified upload + live share) ----------

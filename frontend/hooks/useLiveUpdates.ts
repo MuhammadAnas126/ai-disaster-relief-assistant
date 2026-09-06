@@ -8,6 +8,7 @@ import { alertsKey } from './useAlerts'
 import { checkInsKey } from './useCheckIns'
 import { evidenceKey } from './useEvidence'
 import { rescueSessionsKey } from './useRescue'
+import { pakistanWeatherKey } from './useWeather'
 
 /**
  * Connects to the backend's Socket.io server once per dashboard mount and
@@ -26,6 +27,7 @@ export function useLiveUpdates() {
     const onIncidentUpdated = () => queryClient.invalidateQueries({ queryKey: incidentsKey })
     const onIncidentDeleted = () => queryClient.invalidateQueries({ queryKey: incidentsKey })
     const onAlertNew = () => queryClient.invalidateQueries({ queryKey: alertsKey })
+    const onWeatherUpdated = () => queryClient.invalidateQueries({ queryKey: pakistanWeatherKey })
     const onCheckinUpdated = () => queryClient.invalidateQueries({ queryKey: checkInsKey })
     const onEvidenceNew = () => queryClient.invalidateQueries({ queryKey: evidenceKey })
     const onEvidenceUpdated = () => queryClient.invalidateQueries({ queryKey: evidenceKey })
@@ -37,6 +39,7 @@ export function useLiveUpdates() {
     socket.on('incident:updated', onIncidentUpdated)
     socket.on('incident:deleted', onIncidentDeleted)
     socket.on('alert:new', onAlertNew)
+    socket.on('weather:updated', onWeatherUpdated)
     socket.on('checkin:updated', onCheckinUpdated)
     socket.on('evidence:new', onEvidenceNew)
     socket.on('evidence:updated', onEvidenceUpdated)
@@ -49,6 +52,7 @@ export function useLiveUpdates() {
       socket.off('incident:updated', onIncidentUpdated)
       socket.off('incident:deleted', onIncidentDeleted)
       socket.off('alert:new', onAlertNew)
+      socket.off('weather:updated', onWeatherUpdated)
       socket.off('checkin:updated', onCheckinUpdated)
       socket.off('evidence:new', onEvidenceNew)
       socket.off('evidence:updated', onEvidenceUpdated)

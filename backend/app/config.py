@@ -14,6 +14,7 @@ class Settings:
     OSS_ENDPOINT: str = os.getenv("OSS_ENDPOINT")
     LOCAL_STORAGE_DIR: str = os.getenv("LOCAL_STORAGE_DIR", "storage")
     AUTHORITY_PHONE: str = os.getenv("AUTHORITY_PHONE", "+923001234567")
+    WEATHER_POLL_INTERVAL_SECONDS: int = int(os.getenv("WEATHER_POLL_INTERVAL_SECONDS", "600"))
 
     @property
     def oss_configured(self) -> bool:
