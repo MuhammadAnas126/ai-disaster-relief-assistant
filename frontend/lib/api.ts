@@ -8,7 +8,10 @@ import type {
   EvidenceRecord,
   Incident,
   IncidentAnalysis,
+  RescueCallResult,
+  RescueGuidance,
   SosPrefill,
+  SafeSpotAnalysis,
   User,
 } from "../types";
 
@@ -478,3 +481,66 @@ export const adminAssistantApi = {
       },
     ),
 };
+
+// ---------- Rescue Guidance ----------
+
+export const rescueApi = {
+  getGuidance: (body: { lat?: number; lng?: number; situation: string; trapped?: string; disasterType?: string; language?: string }) =>
+    withFallback<RescueGuidance>(
+      () => request<RescueGuidance>('/rescue/guidance', { method: 'POST', body: JSON.stringify(body) }),
+      // Offline fallback: return hardcoded general safety steps
+      () => ({
+        sessionId: `rg-offline-${Date.now()}`,
+        steps: [
+          { order: 1, instruction: 'Stay calm and assess your surroundings', detail: 'Check for immediate dangers like fire, gas leaks, or unstable structures.' },
+          { order: 2, instruction: 'Move to higher ground if flooding', detail: 'Avoid walking through moving water. Six inches can knock you down.' },
+          { order: 3, instruction: 'Signal for help', detail: 'Use a whistle, flashlight, or bright cloth to attract attention.' },
+          { order: 4, instruction: 'Call emergency services', detail: 'Dial Rescue 1122 or your local emergency number immediately.' },
+        ],
+        safePoint: null,
+        estimatedTimeMinutes: null,
+        warnings: ['Offline mode — these are general safety guidelines. Connect to get location-specific guidance.'],
+        generatedAt: new Date().toISOString(),
+      })
+    ),
+
+  callAuthority: (body: { sessionId?: string; lat?: number; lng?: number; victimName?: string; situation?: string }) =>
+    withFallback<RescueCallResult>(
+      () => request<RescueCallResult>('/rescue/call-authority', { method: 'POST', body: JSON.stringify(body) }),
+      () => ({ success: false, authorityPhone: '+923001234567', calledAt: new Date().toISOString(), message: 'Could not notify authority — please call directly' })
+    ),
+
+  getSession: (sessionId: string) =>
+    withFallback<RescueGuidance>(
+      () => request<RescueGuidance>(`/rescue/session/${sessionId}`),
+      () => null as unknown as RescueGuidance
+    ),
+
+  listSessions: () =>
+    withFallback<RescueGuidance[]>(
+      () => request<RescueGuidance[]>('/rescue/sessions'),
+      () => []
+    ),
+}
+
+export async function analyzeSafeSpots(file: File): Promise<SafeSpotAnalysis> {
+  const token = getToken()
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch(`${API_BASE_URL}/monitor/satellite`, {
+    method: 'POST',
+    body: formData,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body?.detail ?? body?.message ?? `Request failed with status ${res.status}`)
+  }
+
+  const body = await res.json() as { ai_analysis?: { success?: boolean; data?: SafeSpotAnalysis; error?: string } }
+  if (!body.ai_analysis?.success || !body.ai_analysis.data) {
+    throw new Error(body.ai_analysis?.error ?? 'Safe-spot analysis failed')
+  }
+  return body.ai_analysis.data
+}

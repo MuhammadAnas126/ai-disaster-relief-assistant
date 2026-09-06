@@ -1,6 +1,7 @@
 # app/services/ai_service.py
 import json
 import logging
+import math
 import re
 
 import dashscope
@@ -12,7 +13,9 @@ logger = logging.getLogger(__name__)
 QWEN_FLASH_FALLBACK_MODEL = "qwen3.8-flash-next"
 
 # Initialize DashScope only when a key is configured.
-dashscope.api_key = settings.DASHSCOPE_API_KEY or ""
+if settings.DASHSCOPE_API_KEY:
+    dashscope.api_key = settings.DASHSCOPE_API_KEY
+
 if settings.DASHSCOPE_BASE_URL:
     dashscope.base_http_api_url = settings.DASHSCOPE_BASE_URL
 
@@ -71,6 +74,76 @@ def _parse_json_block(raw_text: str) -> dict:
         except json.JSONDecodeError:
             # Best-effort: flag unparseable output but keep the raw text
             return {"parse_error": True, "raw": raw_text}
+
+def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Haversine distance between two GPS coordinates in kilometres."""
+    R = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lambda = math.radians(lng2 - lng1)
+    a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _build_rescue_guidance_prompt(
+    victim_lat: float,
+    victim_lng: float,
+    situation: str,
+    trapped: str | None,
+    disaster_type: str | None,
+    language: str,
+) -> str:
+    """
+    System prompt for the rescue guidance AI. Instructs Qwen-Max to act as an
+    emergency evacuation advisor and return strict structured JSON.
+    """
+    trapped_ctx = "not trapped" if trapped in (None, "no") else ("partially trapped" if trapped == "partial" else "trapped")
+    disaster_ctx = disaster_type or "unspecified disaster"
+
+    lang_instruction = ""
+    if language == "ur":
+        lang_instruction = (
+            "\n\nRespond in Urdu (Roman Urdu is acceptable). All instruction and "
+            "detail fields MUST be in Urdu."
+        )
+    else:
+        lang_instruction = (
+            "\n\nRespond in English. All instruction and detail fields MUST be in English."
+        )
+
+    prompt = (
+        "You are an emergency evacuation advisor inside a disaster relief system "
+        "operating in Pakistan. A victim has requested immediate evacuation guidance.\n\n"
+        f"VICTIM LOCATION: latitude {victim_lat}, longitude {victim_lng}\n"
+        f"SITUATION: {situation}\n"
+        f"TRAPPED STATUS: {trapped_ctx}\n"
+        f"DISASTER TYPE: {disaster_ctx}\n\n"
+        "OUTPUT FORMAT — respond with STRICT JSON only, no markdown fences, no prose:\n"
+        "{\n"
+        '  "steps": [\n'
+        '    {"order": 1, "instruction": "<short imperative action>", "detail": "<why and how>"}\n'
+        "  ],\n"
+        '  "safePoint": {"lat": <float>, "lng": <float>, "label": "<brief place name>"},\n'
+        '  "estimatedTimeMinutes": <integer minutes to reach safety>,\n'
+        '  "warnings": ["<one warning per array element>"]\n'
+        "}\n\n"
+        "CONSTRAINTS:\n"
+        "- Maximum 8 steps, minimum 2 steps. Each step must be actionable and sequential.\n"
+        "- Start each instruction with a verb. Keep instructions under 15 words; details under 40 words.\n"
+        "- safePoint must be within 50 km of the victim's location. Use well-known safe categories: "
+        "hospitals, high ground, relief camps, designated evacuation zones. If you cannot determine a "
+        "real safe point, set safePoint to null.\n"
+        "- estimatedTimeMinutes must be realistic (5–240 minutes). Set to null if unknown.\n"
+        "- warnings must include immediate dangers relevant to the situation (e.g. rising water, "
+        "aftershocks, structural collapse, gas leaks).\n"
+        "- General directional guidance only — do not fabricate specific street names or landmarks "
+        "unless you are highly confident they exist near the victim's coordinates.\n"
+        "- If the victim is trapped, prioritize steps for signaling rescuers and conserving energy "
+        "over movement.\n"
+        f"{lang_instruction}"
+    )
+    return prompt
+
 
 def _build_chat_system_prompt(context: dict | None = None) -> str:
     """
@@ -569,5 +642,124 @@ class AIService:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    @staticmethod
+    async def generate_rescue_guidance(
+        lat: float,
+        lng: float,
+        situation: str,
+        trapped: str | None = None,
+        disaster_type: str | None = None,
+        language: str = "en",
+    ) -> dict:
+        """
+        Generate step-by-step evacuation guidance using Qwen-Max.
+        Returns structured JSON with ordered steps, a safe point, estimated time,
+        and warnings. Validates that the safe point is within 50km of the victim.
+        """
+        system_prompt = _build_rescue_guidance_prompt(
+            lat, lng, situation, trapped, disaster_type, language
+        )
 
+        user_message = (
+            f"I am at coordinates {lat}, {lng}. "
+            f"Situation: {situation}. "
+        )
+        if trapped and trapped != "no":
+            user_message += f"I am {'partially ' if trapped == 'partial' else ''}trapped. "
+        if disaster_type:
+            user_message += f"Disaster type: {disaster_type}. "
+        user_message += "Give me evacuation guidance now."
+
+        try:
+            response = Generation.call(
+                model='qwen-max',
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                result_format='message',
+            )
+
+            if response.status_code != 200:
+                return {"success": False, "error": response.message}
+
+            raw_text = response.output.choices[0].message.content
+            parsed = _parse_json_block(raw_text)
+
+            if parsed.get("parse_error"):
+                return {"success": False, "error": "Failed to parse AI response as JSON"}
+
+            # Validate safe point is within 50km of victim location
+            safe_point = parsed.get("safePoint")
+            if safe_point and isinstance(safe_point, dict):
+                sp_lat = safe_point.get("lat")
+                sp_lng = safe_point.get("lng")
+                if isinstance(sp_lat, (int, float)) and isinstance(sp_lng, (int, float)):
+                    dist_km = _haversine_km(lat, lng, sp_lat, sp_lng)
+                    if dist_km > 50:
+                        logger.warning(
+                            "Safe point too far (%.1f km) from victim at (%.4f, %.4f), discarding",
+                            dist_km, lat, lng,
+                        )
+                        parsed["safePoint"] = None
+
+            return {"success": True, "guidance": parsed}
+
+        except Exception as e:
+            logger.exception("generate_rescue_guidance failed")
+            return {"success": False, "error": str(e)}
+
+    @staticmethod
+    async def analyze_satellite_image(image_base64: str) -> dict:
+        """
+        Uses Qwen-VL to analyze satellite/drone imagery and identify safe zones.
+        """
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"image": f"data:image/jpeg;base64,{image_base64}"},
+                    {
+                        "text": """You are an expert GIS Disaster Response Analyst. Analyze this satellite/aerial image of a disaster zone.
+                        
+                        Identify up to 3 'Safe Spots' suitable for emergency helicopter landing, drone drops, or setting up field shelters. 
+                        A safe spot must be: flat, open, free of fire/water, and away from collapsing structures.
+                        
+                        Also identify 2 'Hazard Zones' to avoid (e.g., flooded areas, fire, collapsed bridges).
+                        
+                        Output STRICT JSON only in this exact format:
+                        {
+                          "safe_spots": [
+                            {"location": "description (e.g., Top Left quadrant)", "reason": "why it is safe", "capacity": "small drone | large helicopter"},
+                            {"location": "...", "reason": "...", "capacity": "..."}
+                          ],
+                          "hazard_zones": [
+                            {"location": "description", "threat": "flood | fire | structural collapse"}
+                          ],
+                          "overall_assessment": "1 sentence summary of the area"
+                        }"""
+                    }
+                ]
+            }
+        ]
+        
+        try:
+            response = MultiModalConversation.call(
+                model='qwen-vl-max',
+                messages=messages,
+                result_format='message'
+            )
+            
+            if response.status_code == 200:
+                content = response.output.choices[0].message.content
+                raw_text = content[0]["text"] if isinstance(content, list) else content
+                parsed = _parse_json_block(raw_text)
+                if parsed.get("parse_error"):
+                    return {"success": False, "error": "Failed to parse AI response as JSON"}
+                return {"success": True, "data": parsed}
+            else:
+                return {"success": False, "error": response.message}
+                
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 ai_service = AIService()

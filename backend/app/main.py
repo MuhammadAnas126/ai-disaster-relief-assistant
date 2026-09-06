@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import monitor, chatbot, livestream, auth, incidents, checkins, alerts, admin_assistant, evidence
+from app.routers import monitor, chatbot, livestream, auth, incidents, checkins, alerts, admin_assistant, evidence, rescue
 from app.services.realtime import sio
 from app.services.evidence_store import MEDIA_ROOT
 
@@ -41,6 +41,7 @@ fastapi_app.include_router(checkins.router, prefix="/api/check-ins", tags=["Chec
 fastapi_app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 fastapi_app.include_router(admin_assistant.router, prefix="/api/admin-assistant", tags=["Admin Assistant"])
 fastapi_app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
+fastapi_app.include_router(rescue.router, prefix="/api/rescue", tags=["Rescue"])
 
 # Serve persisted evidence media (photos, video poster frames, stream frames)
 # so the admin Live Share gallery can preview victim submissions.

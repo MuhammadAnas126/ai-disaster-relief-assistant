@@ -43,6 +43,8 @@ const en = {
   "landing.emergency": "Emergency",
   "landing.signIn": "Sign in",
   "landing.signInDesc": "Already have an account",
+  "landing.rescue": "Get rescue guidance",
+  "landing.rescueDesc": "Find a safe route without signing up",
   "landing.noAccountNeeded":
     "Registering a case never requires an account or password",
 
@@ -293,6 +295,34 @@ const en = {
   "time.minutesAgo": "{n}m ago",
   "time.hoursAgo": "{n}h ago",
   "time.daysAgo": "{n}d ago",
+  // ----- Rescue Guidance -----
+  "topBar.rescue": "Rescue",
+  "rescue.title": "Rescue Guidance",
+  "rescue.subtitle": "AI-powered evacuation guidance for trapped victims",
+  "rescue.getGuidance": "Get Guidance",
+  "rescue.callAuthority": "Call Authority Now",
+  "rescue.callingAuthority": "Calling...",
+  "rescue.authorityCalled": "Authority notified! Calling now...",
+  "rescue.authorityPhone": "Authority Phone",
+  "rescue.safePoint": "Safe Point",
+  "rescue.estimatedTime": "Estimated Time",
+  "rescue.warning": "Warning",
+  "rescue.disclaimer": "This is AI-suggested guidance — verify your route is clear before moving.",
+  "rescue.noLocation": "Share your location for route guidance",
+  "rescue.generating": "Generating evacuation guidance...",
+  "rescue.stepPrefix": "Step",
+  "rescue.quickTrapped": "I am trapped",
+  "rescue.quickFlood": "Flood water rising",
+  "rescue.quickEarthquake": "Earthquake — building damaged",
+  "rescue.quickFire": "Fire nearby",
+  "rescue.situation": "Describe your situation",
+  "rescue.shareLocation": "Share My Location",
+  "rescue.locationShared": "Location shared",
+  "rescue.minutes": "minutes",
+  "rescue.callDirectly": "Call directly",
+  "rescue.notificationSent": "Authority has been notified of your emergency",
+  "rescue.openNavigation": "Navigate with Google Maps",
+  "rescue.openMap": "Open Google Maps",
 };
 
 const ur: Record<keyof typeof en, string> = {
@@ -331,6 +361,8 @@ const ur: Record<keyof typeof en, string> = {
   "landing.signInDesc": "پہلے سے اکاؤنٹ ہے؟",
   "landing.noAccountNeeded":
     "کیس رجسٹر کرنے کے لیے اکاؤنٹ یا پاس ورڈ کی ضرورت نہیں",
+  "landing.rescue": "ریسکیو رہنمائی حاصل کریں",
+  "landing.rescueDesc": "سائن اپ کے بغیر محفوظ راستہ تلاش کریں",
 
   // ----- Sign in -----
   "signIn.title": "سائن ان کریں",
@@ -579,6 +611,34 @@ const ur: Record<keyof typeof en, string> = {
   "time.minutesAgo": "{n} منٹ پہلے",
   "time.hoursAgo": "{n} گھنٹے پہلے",
   "time.daysAgo": "{n} دن پہلے",
+  // ----- Rescue Guidance -----
+  "topBar.rescue": "ریسکیو",
+  "rescue.title": "ریسکیو رہنمائی",
+  "rescue.subtitle": "پھنسے ہوئے متاثرین کے لیے AI سے چلنے والی انخلاء رہنمائی",
+  "rescue.getGuidance": "رہنمائی حاصل کریں",
+  "rescue.callAuthority": "ابھی اتھارٹی کو کال کریں",
+  "rescue.callingAuthority": "کال ہو رہی ہے...",
+  "rescue.authorityCalled": "اتھارٹی کو مطلع کر دیا گیا! ابھی کال ہو رہی ہے...",
+  "rescue.authorityPhone": "اتھارٹی فون",
+  "rescue.safePoint": "محفوظ مقام",
+  "rescue.estimatedTime": "تخمینی وقت",
+  "rescue.warning": "انتباہ",
+  "rescue.disclaimer": "یہ AI کی تجویز کردہ رہنمائی ہے — آگے بڑھنے سے پہلے اپنا راستہ صاف ہونے کی تصدیق کریں۔",
+  "rescue.noLocation": "راستے کی رہنمائی کے لیے اپنا مقام شیئر کریں",
+  "rescue.generating": "انخلاء کی رہنمائی تیار ہو رہی ہے...",
+  "rescue.stepPrefix": "قدم",
+  "rescue.quickTrapped": "میں پھنسا ہوا ہوں",
+  "rescue.quickFlood": "سیلابی پانی بڑھ رہا ہے",
+  "rescue.quickEarthquake": "زلزلہ — عمارت کو نقصان",
+  "rescue.quickFire": "قریب آگ لگی ہے",
+  "rescue.situation": "اپنی صورتحال بیان کریں",
+  "rescue.shareLocation": "اپنا مقام شیئر کریں",
+  "rescue.locationShared": "مقام شیئر ہو گیا",
+  "rescue.minutes": "منٹ",
+  "rescue.callDirectly": "براہ راست کال کریں",
+  "rescue.notificationSent": "اتھارٹی کو آپ کی ایمرجنسی کے بارے میں مطلع کر دیا گیا ہے",
+  "rescue.openNavigation": "گوگل میپس سے نیویگیٹ کریں",
+  "rescue.openMap": "گوگل میپس کھولیں",
 };
 
 export const dictionaries: Record<Language, typeof en> = { en, ur };

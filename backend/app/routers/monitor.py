@@ -40,3 +40,28 @@ async def analyze_victim_frame(file: UploadFile = File(...)):
 @router.get("/health")
 async def health_check():
     return {"status": "Sentinel Backend is healthy and ready!"}
+# Add this to the bottom of app/routers/monitor.py
+
+@router.post("/satellite")
+async def analyze_satellite_frame(file: UploadFile = File(...)):
+    """
+    Receives a satellite/drone image and identifies safe spots and hazards.
+    """
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    try:
+        # Read and convert to base64
+        file_content = await file.read()
+        image_base64 = base64.b64encode(file_content).decode('utf-8')
+
+        # Send to AI Service
+        ai_result = await ai_service.analyze_satellite_image(image_base64)
+
+        return {
+            "success": True,
+            "ai_analysis": ai_result
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

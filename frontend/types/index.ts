@@ -162,3 +162,38 @@ export interface EvidenceRecord {
   analysis: EvidenceAnalysis | null
   receivedAt: string
 }
+
+// ── Rescue Guidance ─────────────────────────────────────────
+export interface RescueStep {
+  order: number
+  instruction: string
+  detail: string
+}
+
+export interface SafePoint {
+  lat: number
+  lng: number
+  label: string
+}
+
+export interface RescueGuidance {
+  sessionId: string
+  steps: RescueStep[]
+  safePoint: SafePoint | null
+  estimatedTimeMinutes: number | null
+  warnings: string[]
+  generatedAt: string
+}
+
+export interface RescueCallResult {
+  success: boolean
+  authorityPhone: string
+  calledAt: string
+  message: string
+}
+
+export interface SafeSpotAnalysis {
+  safe_spots: Array<{ location: string; reason: string; capacity: string }>
+  hazard_zones: Array<{ location: string; threat: string }>
+  overall_assessment: string
+}

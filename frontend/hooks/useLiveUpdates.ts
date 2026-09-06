@@ -7,6 +7,7 @@ import { incidentsKey } from './useIncidents'
 import { alertsKey } from './useAlerts'
 import { checkInsKey } from './useCheckIns'
 import { evidenceKey } from './useEvidence'
+import { rescueSessionsKey } from './useRescue'
 
 /**
  * Connects to the backend's Socket.io server once per dashboard mount and
@@ -29,6 +30,8 @@ export function useLiveUpdates() {
     const onEvidenceNew = () => queryClient.invalidateQueries({ queryKey: evidenceKey })
     const onEvidenceUpdated = () => queryClient.invalidateQueries({ queryKey: evidenceKey })
     const onEvidenceDeleted = () => queryClient.invalidateQueries({ queryKey: evidenceKey })
+    const onRescueGuidanceReady = () => queryClient.invalidateQueries({ queryKey: rescueSessionsKey })
+    const onRescueAuthorityCalled = () => queryClient.invalidateQueries({ queryKey: rescueSessionsKey })
 
     socket.on('incident:new', onIncidentNew)
     socket.on('incident:updated', onIncidentUpdated)
@@ -38,6 +41,8 @@ export function useLiveUpdates() {
     socket.on('evidence:new', onEvidenceNew)
     socket.on('evidence:updated', onEvidenceUpdated)
     socket.on('evidence:deleted', onEvidenceDeleted)
+    socket.on('rescue:guidance_ready', onRescueGuidanceReady)
+    socket.on('rescue:authority_called', onRescueAuthorityCalled)
 
     return () => {
       socket.off('incident:new', onIncidentNew)
@@ -48,6 +53,8 @@ export function useLiveUpdates() {
       socket.off('evidence:new', onEvidenceNew)
       socket.off('evidence:updated', onEvidenceUpdated)
       socket.off('evidence:deleted', onEvidenceDeleted)
+      socket.off('rescue:guidance_ready', onRescueGuidanceReady)
+      socket.off('rescue:authority_called', onRescueAuthorityCalled)
     }
   }, [queryClient])
 }

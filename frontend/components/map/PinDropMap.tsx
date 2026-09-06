@@ -1,8 +1,9 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import { MapContainer, Marker, useMapEvents } from 'react-leaflet'
 import { useEffect } from 'react'
 import L from 'leaflet'
+import { EsriBasemap } from './EsriBasemap'
 
 const pinIcon = new L.DivIcon({
   className: '',
@@ -41,10 +42,7 @@ export default function PinDropMap({ lat, lng, onChange, heightClassName = 'h-[2
     // (z-index 200-1000) can't paint over floating UI like the chat widget.
     <div className={`relative z-0 w-full ${heightClassName} overflow-hidden rounded-xl border border-border`}>
       <MapContainer center={[lat, lng]} zoom={13} style={{ height: '100%', width: '100%', background: '#16100f' }}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <EsriBasemap />
         <Marker position={[lat, lng]} icon={pinIcon} />
         <ClickCatcher onPick={onChange} />
         <Recenter lat={lat} lng={lng} />

@@ -1,8 +1,9 @@
 # app/config.py
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).with_name(".env"))
 
 class Settings:
     DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY")
@@ -12,6 +13,7 @@ class Settings:
     OSS_BUCKET_NAME: str = os.getenv("OSS_BUCKET_NAME")
     OSS_ENDPOINT: str = os.getenv("OSS_ENDPOINT")
     LOCAL_STORAGE_DIR: str = os.getenv("LOCAL_STORAGE_DIR", "storage")
+    AUTHORITY_PHONE: str = os.getenv("AUTHORITY_PHONE", "+923001234567")
 
     @property
     def oss_configured(self) -> bool:

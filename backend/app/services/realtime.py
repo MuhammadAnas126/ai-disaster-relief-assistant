@@ -44,3 +44,13 @@ async def emit_incident_deleted(incident_id: str) -> None:
 async def emit_evidence_deleted(evidence_id: str) -> None:
     """Broadcast a deleted evidence id so the Live Share gallery removes the tile."""
     await sio.emit("evidence:deleted", {"id": evidence_id})
+
+
+async def emit_rescue_guidance_ready(session: dict) -> None:
+    """Broadcast that rescue guidance has been generated for a victim."""
+    await sio.emit("rescue:guidance_ready", session)
+
+
+async def emit_rescue_authority_called(data: dict) -> None:
+    """Broadcast that the victim has called the emergency authority."""
+    await sio.emit("rescue:authority_called", data)

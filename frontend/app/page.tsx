@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { LogIn, TriangleAlert, ChevronRight, ShieldAlert } from 'lucide-react'
+import { LogIn, TriangleAlert, ChevronRight, ShieldAlert, Navigation } from 'lucide-react'
 import { LanguageToggle } from '../components/layout/LanguageToggle'
 import { Badge } from '../components/ui/Badge'
 import { ChatWidget } from '../components/ui/ChatWidget'
@@ -30,6 +30,12 @@ const OPTIONS: EntryOption[] = [
     icon: LogIn,
     titleKey: 'landing.signIn',
     descriptionKey: 'landing.signInDesc',
+  },
+  {
+    to: '/rescue',
+    icon: Navigation,
+    titleKey: 'landing.rescue',
+    descriptionKey: 'landing.rescueDesc',
   },
 ]
 

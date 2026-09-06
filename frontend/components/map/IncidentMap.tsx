@@ -2,11 +2,12 @@
 
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, CircleMarker, Popup, useMap } from 'react-leaflet'
 import type { CircleMarker as CircleMarkerInstance } from 'leaflet'
 import { useLanguage } from '../../lib/i18n'
 import type { TranslationKey } from '../../lib/dictionaries'
 import type { Incident } from '../../types'
+import { EsriBasemap } from './EsriBasemap'
 
 const SEVERITY_COLOR: Record<Incident['severityLevel'], string> = {
   critical: '#E24C3F',
@@ -79,10 +80,7 @@ export default function IncidentMap({
     // (z-index 200-1000) can't paint over floating UI (chat widget, dropdowns).
     <div className={`relative z-0 w-full ${heightClassName} overflow-hidden rounded-card`}>
       <MapContainer center={center} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%', background: '#16100f' }}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <EsriBasemap />
         {incidents.map((incident) => (
           <CircleMarker
             key={incident.id}
