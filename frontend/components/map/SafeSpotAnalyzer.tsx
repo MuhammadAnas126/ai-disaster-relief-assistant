@@ -2,18 +2,20 @@
 
 import { useState } from 'react'
 import { AlertTriangle, CheckCircle2, ImagePlus, ScanSearch } from 'lucide-react'
-import { analyzeSafeSpots } from '../../lib/api'
+import { analyzeSafeSpots, fetchLiveSatelliteImage } from '../../lib/api'
 import type { SafeSpotAnalysis } from '../../types'
 import { Card } from '../ui/Card'
 
-export function SafeSpotAnalyzer() {
+interface SafeSpotAnalyzerProps {
+  position: [number, number]
+}
+
+export function SafeSpotAnalyzer({ position }: SafeSpotAnalyzerProps) {
   const [analysis, setAnalysis] = useState<SafeSpotAnalysis | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file) return
+  async function analyzeFile(file: File) {
     setError(null)
     setAnalysis(null)
     setIsPending(true)
@@ -23,7 +25,25 @@ export function SafeSpotAnalyzer() {
       setError(err instanceof Error ? err.message : 'Safe-spot analysis failed')
     } finally {
       setIsPending(false)
-      event.target.value = ''
+    }
+  }
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    await analyzeFile(file)
+    event.target.value = ''
+  }
+
+  async function fetchLiveImagery() {
+    setError(null)
+    setAnalysis(null)
+    setIsPending(true)
+    try {
+      await analyzeFile(await fetchLiveSatelliteImage(position))
+    } catch (err) {
+      setIsPending(false)
+      setError(err instanceof Error ? err.message : 'Live satellite imagery failed')
     }
   }
 
@@ -41,6 +61,10 @@ export function SafeSpotAnalyzer() {
           </span>
         </label>
       </div>
+      <button type="button" onClick={fetchLiveImagery} disabled={isPending} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-secondary px-4 py-2.5 text-sm font-semibold text-secondary transition-colors hover:bg-secondary/10 disabled:opacity-50">
+        <ScanSearch size={16} /> {isPending ? 'Fetching and analyzing...' : 'Fetch live satellite imagery'}
+      </button>
+      <p className="mt-2 text-xs text-text-muted">Current area: {position[0].toFixed(4)}, {position[1].toFixed(4)}</p>
 
       {error && <div className="mt-4 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent">{error}</div>}
       {analysis && <div className="mt-5 space-y-4">

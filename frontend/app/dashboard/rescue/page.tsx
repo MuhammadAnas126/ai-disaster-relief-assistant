@@ -6,9 +6,9 @@ import { Card } from '../../../components/ui/Card'
 import { Button } from '../../../components/ui/Button'
 import { Label, Select, Textarea } from '../../../components/ui/Input'
 import { RescueGuidanceMapClient } from '../../../components/map/RescueGuidanceMapClient'
-import { SafeSpotAnalyzer } from '../../../components/map/SafeSpotAnalyzer'
 import { useCallAuthority, useRescueGuidance } from '../../../hooks/useRescue'
 import { useLanguage } from '../../../lib/i18n'
+import { analyzeSafeSpots, fetchLiveSatelliteImage } from '../../../lib/api'
 import type { TrappedStatus } from '../../../types'
 
 const DEFAULT_POSITION: [number, number] = [24.8607, 67.0011]
@@ -22,6 +22,8 @@ export default function RescuePage() {
   const [disasterType, setDisasterType] = useState('')
   const [position, setPosition] = useState<[number, number]>(DEFAULT_POSITION)
   const [locationState, setLocationState] = useState<'idle' | 'loading' | 'shared' | 'error'>('idle')
+  const [satellitePending, setSatellitePending] = useState(false)
+  const [satelliteError, setSatelliteError] = useState<string | null>(null)
 
   function shareLocation() {
     if (!navigator.geolocation) return setLocationState('error')
@@ -33,9 +35,24 @@ export default function RescuePage() {
     )
   }
 
-  function requestGuidance() {
+  async function requestGuidance() {
     if (!situation.trim()) return
-    guidance.mutate({ lat: position[0], lng: position[1], situation: situation.trim(), trapped, disasterType: disasterType || undefined, language })
+    setSatellitePending(true)
+    setSatelliteError(null)
+    try {
+      const satellite = await analyzeSafeSpots(await fetchLiveSatelliteImage(position))
+      const satelliteContext = [
+        `Live satellite analysis for ${position[0].toFixed(4)}, ${position[1].toFixed(4)}:`,
+        `Overall assessment: ${satellite.overall_assessment}`,
+        `Safe spots: ${satellite.safe_spots.map((spot) => `${spot.location} (${spot.reason}; ${spot.capacity})`).join('; ') || 'none identified'}`,
+        `Hazards: ${satellite.hazard_zones.map((hazard) => `${hazard.location} (${hazard.threat})`).join('; ') || 'none identified'}`,
+      ].join('\n')
+      guidance.mutate({ lat: position[0], lng: position[1], situation: `${situation.trim()}\n\n${satelliteContext}`, trapped, disasterType: disasterType || undefined, language })
+    } catch (err) {
+      setSatelliteError(err instanceof Error ? err.message : 'Live satellite analysis failed')
+    } finally {
+      setSatellitePending(false)
+    }
   }
 
   function callForHelp() {
@@ -71,9 +88,10 @@ export default function RescuePage() {
             <div><Label htmlFor="rescue-trapped">{t('registerCase.trapped')}</Label><Select id="rescue-trapped" value={trapped} onChange={(event) => setTrapped(event.target.value as TrappedStatus)}><option value="yes">{t('registerCase.trappedYes')}</option><option value="partial">{t('registerCase.trappedPartial')}</option><option value="no">{t('registerCase.trappedNo')}</option></Select></div>
             <div><Label htmlFor="rescue-disaster">{t('common.disaster')}</Label><Select id="rescue-disaster" value={disasterType} onChange={(event) => setDisasterType(event.target.value)}><option value="">{t('disaster.unknown')}</option><option value="flood">{t('disaster.flood')}</option><option value="earthquake">{t('disaster.earthquake')}</option><option value="fire">{t('disaster.fire')}</option><option value="building_collapse">{t('disaster.building_collapse')}</option><option value="other">{t('disaster.other')}</option></Select></div>
           </div>
-          <Button type="button" className="mt-5 w-full" onClick={requestGuidance} disabled={!situation.trim() || guidance.isPending}><Navigation size={17} /> {guidance.isPending ? t('rescue.generating') : t('rescue.getGuidance')}</Button>
+          <Button type="button" className="mt-5 w-full" onClick={requestGuidance} disabled={!situation.trim() || guidance.isPending || satellitePending}><Navigation size={17} /> {satellitePending ? 'Analyzing live satellite imagery...' : guidance.isPending ? t('rescue.generating') : t('rescue.getGuidance')}</Button>
           <Button type="button" variant="secondary" className="mt-3 w-full border-accent/40 text-accent hover:border-accent" onClick={callForHelp} disabled={callAuthority.isPending}><Phone size={17} /> {callAuthority.isPending ? t('rescue.callingAuthority') : t('rescue.callAuthority')}</Button>
           {callAuthority.data && <p className="mt-3 text-center text-xs text-success">{t('rescue.notificationSent')} · {callAuthority.data.authorityPhone}</p>}
+          {satelliteError && <p className="mt-3 rounded-lg border border-secondary/30 bg-secondary/10 px-3 py-2 text-xs text-secondary">{satelliteError}</p>}
         </Card>
 
         <div className="space-y-4">
@@ -86,7 +104,6 @@ export default function RescuePage() {
           </div>}
         </div>
       </div>
-      <SafeSpotAnalyzer />
     </div>
   )
 }

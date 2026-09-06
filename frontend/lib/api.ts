@@ -523,6 +523,24 @@ export const rescueApi = {
     ),
 }
 
+export async function fetchLiveSatelliteImage(position: [number, number]): Promise<File> {
+  const [lat, lng] = position
+  const params = new URLSearchParams({
+    bbox: `${lng - 0.06},${lat - 0.045},${lng + 0.06},${lat + 0.045}`,
+    bboxSR: '4326',
+    imageSR: '4326',
+    size: '1200,800',
+    format: 'jpg',
+    f: 'image',
+  })
+  const apiKey = process.env.NEXT_PUBLIC_ARCGIS_API_KEY
+  if (apiKey) params.set('token', apiKey)
+  const response = await fetch(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?${params}`)
+  if (!response.ok) throw new Error(`Satellite imagery request failed (${response.status})`)
+  const blob = await response.blob()
+  return new File([blob], `satellite-${lat.toFixed(4)}-${lng.toFixed(4)}.jpg`, { type: 'image/jpeg' })
+}
+
 export async function analyzeSafeSpots(file: File): Promise<SafeSpotAnalysis> {
   const token = getToken()
   const formData = new FormData()

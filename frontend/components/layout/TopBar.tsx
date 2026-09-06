@@ -9,7 +9,6 @@ import {
   Video,
   ListOrdered,
   MessageCircle,
-  Navigation,
   ShieldAlert,
   LogOut,
 } from 'lucide-react'
@@ -24,7 +23,6 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutGrid; labelKey: TranslationKey
   { to: '/dashboard/connect', icon: Video, labelKey: 'topBar.connect' },
   { to: '/dashboard/response-list', icon: ListOrdered, labelKey: 'topBar.responseList' },
   { to: '/dashboard/assistant', icon: MessageCircle, labelKey: 'topBar.assistant' },
-  { to: '/dashboard/rescue', icon: Navigation, labelKey: 'topBar.rescue' as TranslationKey },
 ]
 
 interface TopBarProps {

@@ -7,6 +7,7 @@ import { Input, Label, Select, Textarea } from "../../../components/ui/Input";
 import { EmptyState } from "../../../components/ui/States";
 import { MarkdownText } from "../../../components/ui/Markdown";
 import { TypingIndicator } from "../../../components/ui/TypingIndicator";
+import { SafeSpotAnalyzer } from "../../../components/map/SafeSpotAnalyzer";
 import { useSendAdminChatMessage } from "../../../hooks/useAssistant";
 import { useLanguage } from "../../../lib/i18n";
 import type { AlertLevel, AssistantContext, ChatMessage } from "../../../types";
@@ -113,7 +114,9 @@ export default function AssistantPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div className="space-y-6">
+      <SafeSpotAnalyzer position={[27.7172, 85.324]} />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <Card className="flex h-[480px] flex-col">
         <CardHeader>
           <CardTitle>{t("assistant.title")}</CardTitle>
@@ -227,6 +230,7 @@ export default function AssistantPage() {
           )}
         </form>
       </Card>
+      </div>
     </div>
   );
 }
