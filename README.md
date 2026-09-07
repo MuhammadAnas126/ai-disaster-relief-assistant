@@ -60,7 +60,16 @@ DASHSCOPE_API_KEY=your_api_key
 LOCAL_STORAGE_DIR=storage
 ```
 
-Frontend defaults are provided in `frontend/.env.example`:
+Copy the included templates after cloning the repository:
+
+Windows PowerShell:
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+Copy-Item frontend/.env.example frontend/.env.local
+```
+
+Frontend variables are provided in `frontend/.env.example`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
