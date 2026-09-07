@@ -136,6 +136,34 @@ const en = {
   "topBar.account": "Account",
   "topBar.notSignedIn": "Not signed in",
   "topBar.signOut": "Sign out",
+  "satellite.adminTools": "Admin tools",
+  "satellite.title": "Satellite image analyzer",
+  "satellite.description":
+    "Search any place, inspect its satellite imagery, and identify potential safe spots and hazard zones.",
+  "satellite.chooseArea": "Choose an analysis area",
+  "satellite.searchPlace": "Search for a place",
+  "satellite.searchPlaceholder": "City, landmark, address, or coordinates",
+  "satellite.searching": "Searching...",
+  "satellite.search": "Search",
+  "satellite.noPlaces": "No places found. Try a city, landmark, or address.",
+  "satellite.searchFailed": "Place search failed",
+  "satellite.openMaps": "Open Google Maps",
+  "satellite.analyzeSafeSpots": "Analyze safe spots",
+  "satellite.analyzeDescription":
+    "Upload a satellite or drone image to identify landing areas and hazards.",
+  "satellite.analyzing": "Analyzing...",
+  "satellite.uploadImage": "Upload image",
+  "satellite.fetching": "Fetching and analyzing...",
+  "satellite.fetchLive": "Fetch live satellite imagery",
+  "satellite.currentArea": "Current area",
+  "satellite.analysisFailed": "Safe-spot analysis failed",
+  "satellite.liveFailed": "Live satellite imagery failed",
+  "satellite.safeSpots": "Safe spots",
+  "satellite.hazardZones": "Hazard zones",
+  "satellite.capacity": "Capacity",
+  "satellite.avoid": "Avoid",
+  "satellite.imagery": "Satellite imagery",
+  "satellite.selectedArea": "Selected analysis area",
 
   // ----- Overview -----
   "overview.peopleReached": "Total People Affected",
@@ -151,6 +179,36 @@ const en = {
   "overview.none": "None",
   "overview.affected": "affected",
   "overview.noIncidentsHint": "New reports will appear here in real time.",
+  "overview.weatherMonitor": "Pakistan live hazard monitor",
+  "overview.refreshWeather": "Refresh weather and earthquake data",
+  "overview.refresh": "Refresh",
+  "overview.monitorOnline": "Automated monitor online",
+  "overview.sources": "Sources",
+  "overview.updated": "Updated",
+  "overview.weatherUnavailable": "Weather monitor is temporarily unavailable.",
+  "overview.moreIndicators": "more active indicators",
+  "overview.noSevereIndicators":
+    "No automated severe-weather or earthquake indicators detected in the latest check.",
+  "overview.recentReports": "Recent web reports",
+  "overview.automatedDisclaimer":
+    "Automated indicators are not official warnings. Confirm urgent conditions with Pakistan Meteorological Department and local authorities.",
+  "overview.warningStorm":
+    "Severe rain or thunderstorms possible near {location} in the next 24 hours.",
+  "overview.warningRain":
+    "Heavy rain is possible near {location} in the next 24 hours.",
+  "overview.warningWind":
+    "Strong winds up to {value} km/h are possible near {location}.",
+  "overview.warningHeat":
+    "Extreme heat is currently reported near {location}: {value}°C.",
+  "overview.warningEarthquakeCritical":
+    "Magnitude {value} earthquake detected in the Pakistan region. Check official guidance and avoid damaged structures.",
+  "overview.warningEarthquake":
+    "Magnitude {value} earthquake detected in the Pakistan region. Monitor official updates.",
+  "overview.warningTypeStorm": "Storm",
+  "overview.warningTypeRain": "Rain",
+  "overview.warningTypeWind": "Wind",
+  "overview.warningTypeHeat": "Heat",
+  "overview.warningTypeEarthquake": "Earthquake",
 
   // ----- Check-in -----
   "checkIn.privacyNote":
@@ -308,7 +366,8 @@ const en = {
   "rescue.safePoint": "Safe Point",
   "rescue.estimatedTime": "Estimated Time",
   "rescue.warning": "Warning",
-  "rescue.disclaimer": "This is AI-suggested guidance — verify your route is clear before moving.",
+  "rescue.disclaimer":
+    "This is AI-suggested guidance — verify your route is clear before moving.",
   "rescue.noLocation": "Share your location for route guidance",
   "rescue.generating": "Generating evacuation guidance...",
   "rescue.stepPrefix": "Step",
@@ -453,6 +512,34 @@ const ur: Record<keyof typeof en, string> = {
   "topBar.account": "اکاؤنٹ",
   "topBar.notSignedIn": "سائن ان نہیں ہے",
   "topBar.signOut": "سائن آؤٹ",
+  "satellite.adminTools": "ایڈمن ٹولز",
+  "satellite.title": "سیٹلائٹ تصاویر کا تجزیہ کار",
+  "satellite.description":
+    "کسی بھی جگہ کو تلاش کریں، سیٹلائٹ تصاویر دیکھیں اور ممکنہ محفوظ مقامات اور خطرے والے علاقوں کی شناخت کریں۔",
+  "satellite.chooseArea": "تجزیے کا علاقہ منتخب کریں",
+  "satellite.searchPlace": "جگہ تلاش کریں",
+  "satellite.searchPlaceholder": "شہر، اہم مقام، پتہ یا نقاط",
+  "satellite.searching": "تلاش جاری ہے...",
+  "satellite.search": "تلاش کریں",
+  "satellite.noPlaces": "کوئی جگہ نہیں ملی۔ شہر، اہم مقام یا پتہ آزمائیں۔",
+  "satellite.searchFailed": "جگہ تلاش نہیں ہو سکی",
+  "satellite.openMaps": "گوگل میپس کھولیں",
+  "satellite.analyzeSafeSpots": "محفوظ مقامات کا تجزیہ کریں",
+  "satellite.analyzeDescription":
+    "لینڈنگ ایریاز اور خطرات کی شناخت کے لیے سیٹلائٹ یا ڈرون کی تصویر اپ لوڈ کریں۔",
+  "satellite.analyzing": "تجزیہ جاری ہے...",
+  "satellite.uploadImage": "تصویر اپ لوڈ کریں",
+  "satellite.fetching": "حاصل کر کے تجزیہ جاری ہے...",
+  "satellite.fetchLive": "لائیو سیٹلائٹ تصاویر حاصل کریں",
+  "satellite.currentArea": "موجودہ علاقہ",
+  "satellite.analysisFailed": "محفوظ مقام کا تجزیہ ناکام ہو گیا",
+  "satellite.liveFailed": "لائیو سیٹلائٹ تصاویر حاصل نہیں ہو سکیں",
+  "satellite.safeSpots": "محفوظ مقامات",
+  "satellite.hazardZones": "خطرے والے علاقے",
+  "satellite.capacity": "گنجائش",
+  "satellite.avoid": "بچیں",
+  "satellite.imagery": "سیٹلائٹ تصاویر",
+  "satellite.selectedArea": "منتخب کردہ تجزیے کا علاقہ",
 
   // ----- Overview -----
   "overview.peopleReached": "کل متاثرہ افراد",
@@ -468,6 +555,36 @@ const ur: Record<keyof typeof en, string> = {
   "overview.none": "کوئی نہیں",
   "overview.affected": "متاثرہ",
   "overview.noIncidentsHint": "نئی رپورٹس یہاں براہِ راست نظر آئیں گی۔",
+  "overview.weatherMonitor": "پاکستان کا لائیو خطرات کا مانیٹر",
+  "overview.refreshWeather": "موسم اور زلزلے کا ڈیٹا تازہ کریں",
+  "overview.refresh": "تازہ کریں",
+  "overview.monitorOnline": "خودکار مانیٹر آن لائن ہے",
+  "overview.sources": "ذرائع",
+  "overview.updated": "تازہ کاری",
+  "overview.weatherUnavailable": "موسم کا مانیٹر عارضی طور پر دستیاب نہیں۔",
+  "overview.moreIndicators": "مزید فعال اشارے",
+  "overview.noSevereIndicators":
+    "تازہ جانچ میں شدید موسم یا زلزلے کے کوئی خودکار اشارے نہیں ملے۔",
+  "overview.recentReports": "حالیہ ویب رپورٹس",
+  "overview.automatedDisclaimer":
+    "خودکار اشارے سرکاری انتباہات نہیں ہیں۔ فوری حالات کی تصدیق محکمہ موسمیات پاکستان اور مقامی حکام سے کریں۔",
+  "overview.warningStorm":
+    "اگلے 24 گھنٹوں میں {location} کے قریب شدید بارش یا گرج چمک کا امکان ہے۔",
+  "overview.warningRain":
+    "اگلے 24 گھنٹوں میں {location} کے قریب شدید بارش کا امکان ہے۔",
+  "overview.warningWind":
+    "{location} کے قریب {value} کلومیٹر فی گھنٹہ تک تیز ہواؤں کا امکان ہے۔",
+  "overview.warningHeat":
+    "{location} کے قریب اس وقت شدید گرمی رپورٹ ہوئی ہے: {value}°C۔",
+  "overview.warningEarthquakeCritical":
+    "پاکستان کے علاقے میں {value} شدت کا زلزلہ آیا ہے۔ سرکاری ہدایات پر عمل کریں اور متاثرہ عمارتوں سے دور رہیں۔",
+  "overview.warningEarthquake":
+    "پاکستان کے علاقے میں {value} شدت کا زلزلہ آیا ہے۔ سرکاری تازہ کاریوں پر نظر رکھیں۔",
+  "overview.warningTypeStorm": "طوفان",
+  "overview.warningTypeRain": "بارش",
+  "overview.warningTypeWind": "ہوا",
+  "overview.warningTypeHeat": "گرمی",
+  "overview.warningTypeEarthquake": "زلزلہ",
 
   // ----- Check-in -----
   "checkIn.privacyNote":
@@ -625,7 +742,8 @@ const ur: Record<keyof typeof en, string> = {
   "rescue.safePoint": "محفوظ مقام",
   "rescue.estimatedTime": "تخمینی وقت",
   "rescue.warning": "انتباہ",
-  "rescue.disclaimer": "یہ AI کی تجویز کردہ رہنمائی ہے — آگے بڑھنے سے پہلے اپنا راستہ صاف ہونے کی تصدیق کریں۔",
+  "rescue.disclaimer":
+    "یہ AI کی تجویز کردہ رہنمائی ہے — آگے بڑھنے سے پہلے اپنا راستہ صاف ہونے کی تصدیق کریں۔",
   "rescue.noLocation": "راستے کی رہنمائی کے لیے اپنا مقام شیئر کریں",
   "rescue.generating": "انخلاء کی رہنمائی تیار ہو رہی ہے...",
   "rescue.stepPrefix": "قدم",
@@ -638,7 +756,8 @@ const ur: Record<keyof typeof en, string> = {
   "rescue.locationShared": "مقام شیئر ہو گیا",
   "rescue.minutes": "منٹ",
   "rescue.callDirectly": "براہ راست کال کریں",
-  "rescue.notificationSent": "اتھارٹی کو آپ کی ایمرجنسی کے بارے میں مطلع کر دیا گیا ہے",
+  "rescue.notificationSent":
+    "اتھارٹی کو آپ کی ایمرجنسی کے بارے میں مطلع کر دیا گیا ہے",
   "rescue.openNavigation": "گوگل میپس سے نیویگیٹ کریں",
   "rescue.openMap": "گوگل میپس کھولیں",
 };

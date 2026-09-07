@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).with_name(".env"))
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 class Settings:
     DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY")

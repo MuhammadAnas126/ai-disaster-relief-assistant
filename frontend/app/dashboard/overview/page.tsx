@@ -2,7 +2,13 @@
 
 import { Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Crosshair, RefreshCw, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Crosshair,
+  RefreshCw,
+  X,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle } from "../../../components/ui/Card";
 import { Badge } from "../../../components/ui/Badge";
 import {
@@ -13,8 +19,12 @@ import {
 } from "../../../components/ui/States";
 import { IncidentMapClient } from "../../../components/map/IncidentMapClient";
 import { useIncidents, usePriorityScores } from "../../../hooks/useIncidents";
-import { usePakistanWeather, useRefreshPakistanWeather } from "../../../hooks/useWeather";
+import {
+  usePakistanWeather,
+  useRefreshPakistanWeather,
+} from "../../../hooks/useWeather";
 import { useLanguage } from "../../../lib/i18n";
+import type { TranslationKey } from "../../../lib/dictionaries";
 import type { Incident } from "../../../types";
 
 const SEVERITY_TONE: Record<
@@ -90,6 +100,40 @@ function getScoreSeverity(score: number): Incident["severityLevel"] {
   return "medium";
 }
 
+function translateWeatherWarning(
+  warning: { type: string; level: string; location: string; message: string },
+  t: (key: TranslationKey) => string,
+): { type: string; message: string } {
+  const typeKey: Record<string, TranslationKey> = {
+    storm: "overview.warningTypeStorm",
+    rain: "overview.warningTypeRain",
+    wind: "overview.warningTypeWind",
+    heat: "overview.warningTypeHeat",
+    earthquake: "overview.warningTypeEarthquake",
+  };
+  const type = t(typeKey[warning.type] ?? "overview.warningTypeStorm");
+  const valueMatch = warning.message.match(/[\d.]+/);
+  const value = valueMatch?.[1] ?? "";
+  const messageKey =
+    warning.type === "earthquake"
+      ? warning.level === "critical"
+        ? "overview.warningEarthquakeCritical"
+        : "overview.warningEarthquake"
+      : warning.type === "storm"
+        ? "overview.warningStorm"
+        : warning.type === "rain"
+          ? "overview.warningRain"
+          : warning.type === "wind"
+            ? "overview.warningWind"
+            : "overview.warningHeat";
+  return {
+    type,
+    message: t(messageKey)
+      .replace("{location}", warning.location)
+      .replace("{value}", value),
+  };
+}
+
 export default function OverviewPage() {
   return (
     <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
@@ -129,58 +173,102 @@ function OverviewContent() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Pakistan live hazard monitor</CardTitle>
+          <CardTitle>{t("overview.weatherMonitor")}</CardTitle>
           <button
             type="button"
             onClick={() => refreshWeather.mutate()}
             disabled={refreshWeather.isPending}
             className="flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-text disabled:opacity-50"
-            title="Refresh weather and earthquake data"
+            title={t("overview.refreshWeather")}
           >
-            <RefreshCw size={13} className={refreshWeather.isPending ? "animate-spin" : ""} />
-            Refresh
+            <RefreshCw
+              size={13}
+              className={refreshWeather.isPending ? "animate-spin" : ""}
+            />
+            {t("overview.refresh")}
           </button>
         </CardHeader>
         {weather.isLoading ? (
           <Skeleton className="h-14 w-full" />
         ) : weather.isError || weather.data?.status === "error" ? (
           <div className="flex items-center gap-2 rounded-xl border border-secondary/30 bg-secondary/10 px-3.5 py-3 text-sm text-secondary">
-            <AlertTriangle size={16} /> Weather monitor is temporarily unavailable.
+            <AlertTriangle size={16} /> {t("overview.weatherUnavailable")}
           </div>
         ) : (
           <>
             <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
-              <span className="flex items-center gap-1.5 text-success"><CheckCircle2 size={14} /> Automated monitor online</span>
-              <span>Sources: {weather.data?.source}</span>
-              {weather.data?.updatedAt && <span>Updated {new Date(weather.data.updatedAt).toLocaleTimeString()}</span>}
+              <span className="flex items-center gap-1.5 text-success">
+                <CheckCircle2 size={14} /> {t("overview.monitorOnline")}
+              </span>
+              <span>
+                {t("overview.sources")}: {weather.data?.source}
+              </span>
+              {weather.data?.updatedAt && (
+                <span>
+                  {t("overview.updated")}{" "}
+                  {new Date(weather.data.updatedAt).toLocaleTimeString()}
+                </span>
+              )}
             </div>
             {weather.data?.warnings.length ? (
               <div className="space-y-2">
                 {weather.data.warnings.slice(0, 5).map((warning) => (
-                  <div key={`${warning.type}-${warning.location}-${warning.message}`} className={`rounded-xl border px-3.5 py-3 text-sm ${warning.level === "critical" ? "border-accent/30 bg-accent/10 text-accent" : warning.level === "warning" ? "border-secondary/30 bg-secondary/10 text-secondary" : "border-border bg-bg text-text"}`}>
-                    <div className="font-semibold">{warning.location} · {warning.type}</div>
-                    <div className="mt-0.5 text-text-muted">{warning.message}</div>
-                  </div>
-                ))}
-                {weather.data.warnings.length > 5 && <div className="text-xs text-text-muted">+ {weather.data.warnings.length - 5} more active indicators</div>}
-              </div>
-            ) : (
-              <p className="text-sm text-text-muted">No automated severe-weather or earthquake indicators detected in the latest check.</p>
-            )}
-                {weather.data?.webReports?.length ? (
-                  <div className="mt-4 border-t border-border pt-3">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Recent web reports</div>
-                    <div className="space-y-2">
-                      {weather.data.webReports.slice(0, 3).map((report) => (
-                        <a key={report.url} href={report.url} target="_blank" rel="noreferrer" className="block rounded-lg border border-border bg-bg px-3 py-2 transition-colors hover:border-secondary/60">
-                          <div className="text-sm font-medium text-text">{report.title}</div>
-                          <div className="mt-1 text-xs text-text-muted">{report.source}{report.publishedAt ? ` · ${new Date(report.publishedAt).toLocaleString()}` : ""}</div>
-                        </a>
-                      ))}
+                  <div
+                    key={`${warning.type}-${warning.location}-${warning.message}`}
+                    className={`rounded-xl border px-3.5 py-3 text-sm ${warning.level === "critical" ? "border-accent/30 bg-accent/10 text-accent" : warning.level === "warning" ? "border-secondary/30 bg-secondary/10 text-secondary" : "border-border bg-bg text-text"}`}
+                  >
+                    <div className="font-semibold">
+                      {warning.location} ·{" "}
+                      {translateWeatherWarning(warning, t).type}
+                    </div>
+                    <div className="mt-0.5 text-text-muted">
+                      {translateWeatherWarning(warning, t).message}
                     </div>
                   </div>
-                ) : null}
-            <p className="mt-3 text-[11px] leading-5 text-text-faint">Automated indicators are not official warnings. Confirm urgent conditions with Pakistan Meteorological Department and local authorities.</p>
+                ))}
+                {weather.data.warnings.length > 5 && (
+                  <div className="text-xs text-text-muted">
+                    + {weather.data.warnings.length - 5}{" "}
+                    {t("overview.moreIndicators")}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted">
+                {t("overview.noSevereIndicators")}
+              </p>
+            )}
+            {weather.data?.webReports?.length ? (
+              <div className="mt-4 border-t border-border pt-3">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  {t("overview.recentReports")}
+                </div>
+                <div className="space-y-2">
+                  {weather.data.webReports.slice(0, 3).map((report) => (
+                    <a
+                      key={report.url}
+                      href={report.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded-lg border border-border bg-bg px-3 py-2 transition-colors hover:border-secondary/60"
+                    >
+                      <div className="text-sm font-medium text-text">
+                        {report.title}
+                      </div>
+                      <div className="mt-1 text-xs text-text-muted">
+                        {report.source}
+                        {report.publishedAt
+                          ? ` · ${new Date(report.publishedAt).toLocaleString()}`
+                          : ""}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <p className="mt-3 text-[11px] leading-5 text-text-faint">
+              {t("overview.automatedDisclaimer")}
+            </p>
           </>
         )}
       </Card>
