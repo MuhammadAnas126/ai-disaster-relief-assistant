@@ -216,17 +216,29 @@ def _build_warnings(cities: list[dict], earthquakes: list[dict]) -> list[dict]:
 async def refresh_weather_snapshot() -> dict:
     global _latest_snapshot
     try:
-        cities = await asyncio.gather(*(
+        city_results = await asyncio.gather(*(
             asyncio.to_thread(_fetch_city_forecast, name, position)
             for name, position in PAKISTAN_CITIES.items()
-        ))
-        earthquakes = await asyncio.to_thread(_fetch_earthquakes)
+        ), return_exceptions=True)
+        cities = []
+        for name, result in zip(PAKISTAN_CITIES, city_results):
+            if isinstance(result, Exception):
+                logger.warning("Weather forecast unavailable for %s: %s", name, result)
+                continue
+            cities.append(result)
+
+        try:
+            earthquakes = await asyncio.to_thread(_fetch_earthquakes)
+        except Exception:
+            logger.exception("Earthquake feed unavailable")
+            earthquakes = []
         try:
             web_reports = await asyncio.to_thread(_fetch_web_reports)
         except Exception:
             logger.exception("Web disaster report search failed")
             web_reports = []
         warnings = _build_warnings(cities, earthquakes)
+        status = "ok" if cities or earthquakes or web_reports else "error"
         _latest_snapshot = {
             "country": "Pakistan",
             "updatedAt": datetime.now(timezone.utc).isoformat(),
@@ -235,7 +247,7 @@ async def refresh_weather_snapshot() -> dict:
             "earthquakes": earthquakes,
             "warnings": warnings,
             "webReports": web_reports,
-            "status": "ok",
+            "status": status,
         }
         await emit_weather_updated(_latest_snapshot)
         for warning in warnings:
