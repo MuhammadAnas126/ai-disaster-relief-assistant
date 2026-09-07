@@ -7,6 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.database import Base, engine
+import app.models  # noqa: F401 - registers tables with Base.metadata
 from app.routers import monitor, chatbot, livestream, auth, incidents, checkins, alerts, admin_assistant, evidence, rescue, weather
 from app.services.realtime import sio
 from app.services.evidence_store import MEDIA_ROOT
@@ -30,6 +32,7 @@ _weather_task: asyncio.Task | None = None
 @fastapi_app.on_event("startup")
 async def start_weather_monitor() -> None:
     global _weather_task
+    Base.metadata.create_all(bind=engine)
     _weather_task = asyncio.create_task(weather_monitor_loop())
 
 

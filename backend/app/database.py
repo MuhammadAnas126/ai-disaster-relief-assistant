@@ -1,8 +1,27 @@
-"""Small local SQLite persistence layer for incidents and evidence."""
+"""Database configuration and the legacy incident/evidence persistence layer."""
 import json
 import sqlite3
+import os
 from pathlib import Path
 from typing import Any
+
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./muhafiz.db")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 DATABASE_PATH = Path(__file__).resolve().parents[1] / "muhafiz.db"
 
