@@ -4,20 +4,17 @@ import logging
 import math
 import re
 
-import dashscope
-from dashscope import Generation, MultiModalConversation
+from openai import OpenAI
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-QWEN_FLASH_FALLBACK_MODEL = "qwen3.8-flash-next"
+QWEN_MODEL = "qwen3.6-flash"
 
-# Initialize DashScope only when a key is configured.
-if settings.DASHSCOPE_API_KEY:
-    dashscope.api_key = settings.DASHSCOPE_API_KEY
-
-if settings.DASHSCOPE_BASE_URL:
-    dashscope.base_http_api_url = settings.DASHSCOPE_BASE_URL
+client = OpenAI(
+    api_key=settings.DASHSCOPE_API_KEY,
+    base_url=settings.DASHSCOPE_BASE_URL,
+)
 
 
 def _repair_json_literals(raw_text: str) -> str:
@@ -269,18 +266,11 @@ def _build_chat_system_prompt(context: dict | None = None) -> str:
 
 
 def _generation_call_with_fallback(primary_model: str, **kwargs):
-    """Call a text model, retrying once with the configured Qwen Flash fallback."""
-    response = Generation.call(model=primary_model, **kwargs)
-    if response.status_code == 200 or primary_model == QWEN_FLASH_FALLBACK_MODEL:
-        return response
-
-    logger.warning(
-        "Text model %s failed (%s); retrying with %s",
-        primary_model,
-        getattr(response, "message", "unknown error"),
-        QWEN_FLASH_FALLBACK_MODEL,
-    )
-    return Generation.call(model=QWEN_FLASH_FALLBACK_MODEL, **kwargs)
+    """Call the configured OpenAI-compatible Qwen model."""
+    kwargs.pop("result_format", None)
+    if primary_model != QWEN_MODEL:
+        logger.info("Using configured model %s instead of legacy model %s", QWEN_MODEL, primary_model)
+    return client.chat.completions.create(model=QWEN_MODEL, **kwargs)
 
 
 # Marker line the chat model appends when a user needs rescue. It is parsed
@@ -441,11 +431,7 @@ class AIService:
                 messages=[{"role": "user", "content": prompt}],
                 result_format="message",
             )
-            if response.status_code != 200:
-                logger.warning("Qwen Turbo priority scoring failed: %s", response.message)
-                return {}
-
-            parsed = _parse_json_block(response.output.choices[0].message.content)
+            parsed = _parse_json_block(response.choices[0].message.content or "")
             result = {}
             incident_by_id = {str(incident.get("id", "")): incident for incident in incidents}
             for item in parsed.get("scores", []):
@@ -483,24 +469,19 @@ class AIService:
             {
                 "role": "user",
                 "content": [
-                    {"image": image_ref},
-                    {"text": "You are an emergency rescue AI. Analyze this image. Is the primary human subject standing, sitting, or collapsed/lying flat on the ground? Are there visible signs of injury or structural collapse? Also classify the disaster type shown. Output STRICT JSON only: {'status': 'standing|sitting|collapsed', 'disaster_type': 'flood|earthquake|fire|building_collapse|landslide|storm|other', 'confidence': 0.0-1.0, 'hazards': []}"}
+                    {"type": "image_url", "image_url": {"url": image_ref}},
+                    {"type": "text", "text": "You are an emergency rescue AI. Analyze this image. Is the primary human subject standing, sitting, or collapsed/lying flat on the ground? Are there visible signs of injury or structural collapse? Also classify the disaster type shown. Output STRICT JSON only: {'status': 'standing|sitting|collapsed', 'disaster_type': 'flood|earthquake|fire|building_collapse|landslide|storm|other', 'confidence': 0.0-1.0, 'hazards': []}"}
                 ]
             }
         ]
         
         try:
-            response = MultiModalConversation.call(
-                model='qwen-vl-max', # or qwen-vl-plus
+            response = client.chat.completions.create(
+                model=QWEN_MODEL,
                 messages=messages,
-                result_format='message'
             )
-            
-            if response.status_code == 200:
-                raw_text = response.output.choices[0].message.content[0]["text"]
-                return {"success": True, "data": _parse_json_block(raw_text)}
-            else:
-                return {"success": False, "error": response.message}
+            raw_text = response.choices[0].message.content or ""
+            return {"success": True, "data": _parse_json_block(raw_text)}
                 
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -529,11 +510,8 @@ class AIService:
                 result_format='message',
             )
 
-            if response.status_code == 200:
-                raw_text = response.output.choices[0].message.content
-                return {"success": True, "data": _parse_json_block(raw_text)}
-            else:
-                return {"success": False, "error": response.message}
+            raw_text = response.choices[0].message.content or ""
+            return {"success": True, "data": _parse_json_block(raw_text)}
 
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -573,13 +551,10 @@ class AIService:
                 result_format='message',
             )
 
-            if response.status_code == 200:
-                reply_text = response.output.choices[0].message.content
-                reply_text, sos_data = _extract_sos_offer(reply_text)
-                sos = _build_sos_prefill(sos_data, context) if sos_data else None
-                return {"success": True, "reply": reply_text, "sos": sos}
-            else:
-                return {"success": False, "error": response.message}
+            reply_text = response.choices[0].message.content or ""
+            reply_text, sos_data = _extract_sos_offer(reply_text)
+            sos = _build_sos_prefill(sos_data, context) if sos_data else None
+            return {"success": True, "reply": reply_text, "sos": sos}
 
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -615,10 +590,7 @@ class AIService:
                 result_format='message',
             )
 
-            if response.status_code != 200:
-                return {"success": False, "error": response.message}
-
-            raw_text = response.output.choices[0].message.content.strip()
+            raw_text = (response.choices[0].message.content or "").strip()
             parsed = _parse_json_block(raw_text)
 
             reply = raw_text
@@ -671,19 +643,15 @@ class AIService:
         user_message += "Give me evacuation guidance now."
 
         try:
-            response = Generation.call(
-                model='qwen-max',
+            response = _generation_call_with_fallback(
+                QWEN_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},
                 ],
                 result_format='message',
             )
-
-            if response.status_code != 200:
-                return {"success": False, "error": response.message}
-
-            raw_text = response.output.choices[0].message.content
+            raw_text = response.choices[0].message.content or ""
             parsed = _parse_json_block(raw_text)
 
             if parsed.get("parse_error"):
@@ -718,9 +686,9 @@ class AIService:
             {
                 "role": "user",
                 "content": [
-                    {"image": f"data:image/jpeg;base64,{image_base64}"},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}},
                     {
-                        "text": """You are an expert GIS Disaster Response Analyst. Analyze this satellite/aerial image of a disaster zone.
+                        "type": "text", "text": """You are an expert GIS Disaster Response Analyst. Analyze this satellite/aerial image of a disaster zone.
                         
                         Identify up to 3 'Safe Spots' suitable for emergency helicopter landing, drone drops, or setting up field shelters. 
                         A safe spot must be: flat, open, free of fire/water, and away from collapsing structures.
@@ -744,21 +712,15 @@ class AIService:
         ]
         
         try:
-            response = MultiModalConversation.call(
-                model='qwen-vl-max',
+            response = client.chat.completions.create(
+                model=QWEN_MODEL,
                 messages=messages,
-                result_format='message'
             )
-            
-            if response.status_code == 200:
-                content = response.output.choices[0].message.content
-                raw_text = content[0]["text"] if isinstance(content, list) else content
-                parsed = _parse_json_block(raw_text)
-                if parsed.get("parse_error"):
-                    return {"success": False, "error": "Failed to parse AI response as JSON"}
-                return {"success": True, "data": parsed}
-            else:
-                return {"success": False, "error": response.message}
+            raw_text = response.choices[0].message.content or ""
+            parsed = _parse_json_block(raw_text)
+            if parsed.get("parse_error"):
+                return {"success": False, "error": "Failed to parse AI response as JSON"}
+            return {"success": True, "data": parsed}
                 
         except Exception as e:
             return {"success": False, "error": str(e)}

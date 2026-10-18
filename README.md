@@ -57,6 +57,8 @@ Backend variables are stored in `backend/.env`:
 
 ```env
 DASHSCOPE_API_KEY=your_api_key
+# OpenAI-compatible international DashScope endpoint
+DASHSCOPE_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 LOCAL_STORAGE_DIR=storage
 ```
 
