@@ -537,16 +537,25 @@ export const rescueApi = {
 export async function fetchLiveSatelliteImage(position: [number, number]): Promise<File> {
   const [lat, lng] = position
   const params = new URLSearchParams({
-    bbox: `${lng - 0.06},${lat - 0.045},${lng + 0.06},${lat + 0.045}`,
+    bbox: `${lng - 0.035},${lat - 0.025},${lng + 0.035},${lat + 0.025}`,
     bboxSR: '4326',
     imageSR: '4326',
-    size: '1200,800',
+    size: '800,533',
     format: 'jpg',
     f: 'image',
   })
   const apiKey = process.env.NEXT_PUBLIC_ARCGIS_API_KEY
   if (apiKey) params.set('token', apiKey)
-  const response = await fetch(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?${params}`)
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 30000)
+  let response: Response
+  try {
+    response = await fetch(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?${params}`, {
+      signal: controller.signal,
+    })
+  } finally {
+    window.clearTimeout(timeout)
+  }
   if (!response.ok) throw new Error(`Satellite imagery request failed (${response.status})`)
   const blob = await response.blob()
   return new File([blob], `satellite-${lat.toFixed(4)}-${lng.toFixed(4)}.jpg`, { type: 'image/jpeg' })
@@ -556,11 +565,19 @@ export async function analyzeSafeSpots(file: File): Promise<SafeSpotAnalysis> {
   const token = getToken()
   const formData = new FormData()
   formData.append('file', file)
-  const res = await fetch(`${API_BASE_URL}/monitor/satellite`, {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 45000)
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE_URL}/monitor/satellite`, {
     method: 'POST',
     body: formData,
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  })
+      signal: controller.signal,
+    })
+  } finally {
+    window.clearTimeout(timeout)
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))

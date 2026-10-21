@@ -1,7 +1,13 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ExternalLink, MapPin, Search, ScanSearch } from "lucide-react";
+import {
+  ExternalLink,
+  LocateFixed,
+  MapPin,
+  Search,
+  ScanSearch,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Input, Label } from "../../../components/ui/Input";
@@ -27,6 +33,9 @@ export default function SatelliteAnalysisPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [locationState, setLocationState] = useState<
+    "idle" | "loading" | "shared" | "error"
+  >("idle");
 
   async function searchPlaces(event: FormEvent) {
     event.preventDefault();
@@ -67,8 +76,32 @@ export default function SatelliteAnalysisPage() {
       label: result.display_name,
       position: [Number(result.lat), Number(result.lon)],
     });
+    setLocationState("idle");
     setResults([]);
     setQuery(result.display_name);
+  }
+
+  function shareLocation() {
+    if (!navigator.geolocation) {
+      setLocationState("error");
+      return;
+    }
+
+    setLocationState("loading");
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocation({
+          label: t("satellite.myLocation"),
+          position: [coords.latitude, coords.longitude],
+        });
+        setLocationState("shared");
+        setResults([]);
+        setQuery("");
+        setSearchError(null);
+      },
+      () => setLocationState("error"),
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
   }
 
   function openGoogleMaps() {
@@ -91,7 +124,22 @@ export default function SatelliteAnalysisPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("satellite.chooseArea")}</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle>{t("satellite.chooseArea")}</CardTitle>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={shareLocation}
+              disabled={locationState === "loading"}
+            >
+              <LocateFixed size={16} />
+              {locationState === "loading"
+                ? t("satellite.locating")
+                : locationState === "shared"
+                  ? t("satellite.locationShared")
+                  : t("satellite.shareLocation")}
+            </Button>
+          </div>
         </CardHeader>
         <form
           onSubmit={searchPlaces}
@@ -129,6 +177,11 @@ export default function SatelliteAnalysisPage() {
         </form>
         {searchError && (
           <p className="mt-3 text-sm text-secondary">{searchError}</p>
+        )}
+        {locationState === "error" && (
+          <p className="mt-3 text-sm text-secondary">
+            {t("satellite.locationError")}
+          </p>
         )}
       </Card>
 

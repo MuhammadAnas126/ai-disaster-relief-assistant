@@ -147,6 +147,12 @@ const en = {
   "satellite.search": "Search",
   "satellite.noPlaces": "No places found. Try a city, landmark, or address.",
   "satellite.searchFailed": "Place search failed",
+  "satellite.locating": "Locating...",
+  "satellite.shareLocation": "Share My Location",
+  "satellite.locationShared": "Location shared",
+  "satellite.myLocation": "My current location",
+  "satellite.locationError":
+    "Couldn't access your location. Check browser permissions and try again.",
   "satellite.openMaps": "Open Google Maps",
   "satellite.analyzeSafeSpots": "Analyze safe spots",
   "satellite.analyzeDescription":
@@ -523,6 +529,12 @@ const ur: Record<keyof typeof en, string> = {
   "satellite.search": "تلاش کریں",
   "satellite.noPlaces": "کوئی جگہ نہیں ملی۔ شہر، اہم مقام یا پتہ آزمائیں۔",
   "satellite.searchFailed": "جگہ تلاش نہیں ہو سکی",
+  "satellite.locating": "مقام تلاش کیا جا رہا ہے...",
+  "satellite.shareLocation": "میرا مقام شیئر کریں",
+  "satellite.locationShared": "مقام شیئر ہو گیا",
+  "satellite.myLocation": "میرا موجودہ مقام",
+  "satellite.locationError":
+    "آپ کے مقام تک رسائی نہیں ہو سکی۔ براؤزر کی اجازتیں چیک کر کے دوبارہ کوشش کریں۔",
   "satellite.openMaps": "گوگل میپس کھولیں",
   "satellite.analyzeSafeSpots": "محفوظ مقامات کا تجزیہ کریں",
   "satellite.analyzeDescription":

@@ -4,6 +4,7 @@ from app.services.ai_service import ai_service
 import base64
 
 router = APIRouter()
+MAX_SATELLITE_BYTES = 8 * 1024 * 1024
 
 @router.post("/frame")
 async def analyze_victim_frame(file: UploadFile = File(...)):
@@ -47,12 +48,14 @@ async def analyze_satellite_frame(file: UploadFile = File(...)):
     """
     Receives a satellite/drone image and identifies safe spots and hazards.
     """
-    if not file.content_type.startswith("image/"):
+    if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
 
     try:
         # Read and convert to base64
         file_content = await file.read()
+        if len(file_content) > MAX_SATELLITE_BYTES:
+            raise HTTPException(status_code=413, detail="Satellite image is too large")
         image_base64 = base64.b64encode(file_content).decode('utf-8')
 
         # Send to AI Service

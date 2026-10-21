@@ -3,6 +3,9 @@ import json
 import logging
 import math
 import re
+import asyncio
+import hashlib
+import time
 
 from openai import OpenAI
 from app.config import settings
@@ -10,6 +13,8 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 QWEN_MODEL = "qwen3.6-flash"
+_SATELLITE_CACHE_TTL_SECONDS = 600
+_satellite_cache: dict[str, tuple[float, dict]] = {}
 
 client = OpenAI(
     api_key=settings.DASHSCOPE_API_KEY,
@@ -682,6 +687,12 @@ class AIService:
         """
         Uses Qwen-VL to analyze satellite/drone imagery and identify safe zones.
         """
+        cache_key = hashlib.sha256(image_base64.encode("ascii")).hexdigest()
+        cached = _satellite_cache.get(cache_key)
+        if cached and time.time() - cached[0] < _SATELLITE_CACHE_TTL_SECONDS:
+            return cached[1]
+        _satellite_cache.pop(cache_key, None)
+
         messages = [
             {
                 "role": "user",
@@ -690,37 +701,49 @@ class AIService:
                     {
                         "type": "text", "text": """You are an expert GIS Disaster Response Analyst. Analyze this satellite/aerial image of a disaster zone.
                         
-                        Identify up to 3 'Safe Spots' suitable for emergency helicopter landing, drone drops, or setting up field shelters. 
-                        A safe spot must be: flat, open, free of fire/water, and away from collapsing structures.
-                        
-                        Also identify 2 'Hazard Zones' to avoid (e.g., flooded areas, fire, collapsed bridges).
+                        Identify at most 2 possible safe spots suitable for emergency landing, drone drops, or field shelters.
+                        Only nominate areas that visibly appear flat, open, free of water/fire, and away from damaged structures.
+                        Also identify at most 2 visible hazard zones. Do not calculate routes or invent facts not visible in the image.
                         
                         Output STRICT JSON only in this exact format:
                         {
                           "safe_spots": [
                             {"location": "description (e.g., Top Left quadrant)", "reason": "why it is safe", "capacity": "small drone | large helicopter"},
-                            {"location": "...", "reason": "...", "capacity": "..."}
                           ],
                           "hazard_zones": [
-                            {"location": "description", "threat": "flood | fire | structural collapse"}
+                            {"location": "description", "threat": "flood | fire | structural collapse | other"}
                           ],
-                          "overall_assessment": "1 sentence summary of the area"
-                        }"""
+                          "overall_assessment": "1 short sentence stating these are image-based candidates, not verified safe zones"
+                        }
+                        Keep each reason under 18 words."""
                     }
                 ]
             }
         ]
         
         try:
-            response = client.chat.completions.create(
+            response = await asyncio.to_thread(
+                client.chat.completions.create,
                 model=QWEN_MODEL,
                 messages=messages,
+                temperature=0.1,
+                max_tokens=500,
             )
             raw_text = response.choices[0].message.content or ""
             parsed = _parse_json_block(raw_text)
             if parsed.get("parse_error"):
                 return {"success": False, "error": "Failed to parse AI response as JSON"}
-            return {"success": True, "data": parsed}
+            parsed["safe_spots"] = [
+                spot for spot in parsed.get("safe_spots", [])
+                if isinstance(spot, dict)
+            ][:2]
+            parsed["hazard_zones"] = [
+                hazard for hazard in parsed.get("hazard_zones", [])
+                if isinstance(hazard, dict)
+            ][:2]
+            result = {"success": True, "data": parsed}
+            _satellite_cache[cache_key] = (time.time(), result)
+            return result
                 
         except Exception as e:
             return {"success": False, "error": str(e)}
